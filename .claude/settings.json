@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command", "command": "command -v wp-start >/dev/null && wp-start \"$CLAUDE_PROJECT_DIR\" || true" }
+        ]
+      }
+    ]
+  }
+}
