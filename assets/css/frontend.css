@@ -53,3 +53,8 @@
 	.law-schedule-table .law-col-result { grid-column: 2; grid-row: 1; }
 	.law-schedule-table .law-col-game { grid-column: 1 / -1; grid-row: 2; width: auto; }
 }
+
+/* Practices and other events */
+.law-schedule-table .law-type-practice .law-event-label,
+.law-schedule-table .law-type-event .law-event-label { font-style: italic; }
+.law-schedule-table .law-event-sep { opacity: .5; }

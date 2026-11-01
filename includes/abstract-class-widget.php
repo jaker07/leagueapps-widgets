@@ -28,6 +28,8 @@ defined( 'ABSPATH' ) || exit;
  *       'empty_label' => '…',   // With 'control': label for "nothing selected".
  *       'filter_by' => 'sport', // With 'control' => 'program': only list programs in
  *                               // the sport chosen in this other attribute.
+ *       'group' => '…',         // Optional: settings tab in page builders (Bold Builder).
+ *                               // Yes/No options default to a "Display" tab.
  *   )
  *
  * Changing the site clears 'program' and 'sport' controls, since their values

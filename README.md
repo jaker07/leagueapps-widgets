@@ -86,6 +86,7 @@ Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same opt
 [leagueapps_schedule program_id="123456" show="upcoming" limit="5"]
 [leagueapps_schedule program_id="123456" team="Lions" show_location="false"]
 [leagueapps_schedule program_id="123456" site="hockey"]
+[leagueapps_schedule program_id="123456" include_practices="false"]
 ```
 
 Block: **LeagueApps Schedule** (Widgets category). Its sidebar has the same options, with **Program** as a dropdown (see [Choosing a sport or program in the block editor](#choosing-a-sport-or-program-in-the-block-editor)).
@@ -95,13 +96,18 @@ Block: **LeagueApps Schedule** (Widgets category). Its sidebar has the same opti
 | `site`          | default site | Slug of a site from Settings → LeagueApps. |
 | `program_id`    | —            | Required. The program whose schedule to show. |
 | `show`          | `all`        | `all` (soonest first), `upcoming` (soonest first) or `past` (most recent first). A game counts as past once it has a score or its start time has passed. |
-| `limit`         | `0`          | Maximum number of games. `0` shows all of them. |
-| `team`          | —            | Only games involving this team, by name (case-insensitive) or team ID. That team's name is shown in bold. |
+| `limit`         | `0`          | Maximum number of entries. `0` shows all of them. |
+| `team`          | —            | Only entries involving this team, by name (case-insensitive) or team ID. That team's name is shown in bold. |
+| `include_games`     | `true`   | Include games. |
+| `include_practices` | `true`   | Include practices. Set to `false` to hide them. |
+| `include_events`    | `true`   | Include anything that isn't a game or practice, such as a photo day. |
 | `show_location` | `true`       | Shows the location and field/court. |
 | `show_results`  | `true`       | Shows scores, or "Canceled" / "Postponed". |
 | `title`         | program name | Overrides the heading. |
 
-Games are grouped by day. Dates and times use the time zone, date format and time format from **Settings → General**. Games without a date are listed last under "Date to be announced". Canceled games are crossed out. Schedule entries without teams, such as a photo day, show their name instead of a matchup.
+**Event types:** each schedule entry counts as a game, a practice or another event. The type comes from the entry's type field in LeagueApps, matched by keyword, so `PRACTICE` and `TEAM_PRACTICE` both count as practices. `GAME`, `MATCH`, `SCRIMMAGE` and `PLAYOFF` count as games, and any other type is an event. An entry with no type counts as a game if it has two teams, and as an event otherwise. The field names and keywords are guesses until checked against real API responses; adjust them with the `leagueapps_widgets_game_fields` and `leagueapps_widgets_event_type_keywords` filters. Practices are shown as "Practice · Team", and other events by their name. Standings only count games.
+
+Entries are grouped by day. Dates and times use the time zone, date format and time format from **Settings → General**. Games without a date are listed last under "Date to be announced". Canceled games are crossed out. Schedule entries without teams, such as a photo day, show their name instead of a matchup.
 
 The layout adapts to the space it's in. In narrow spaces like phones and sidebars, the location moves under the matchup. In very narrow spaces, each game is stacked.
 
@@ -125,7 +131,7 @@ The list comes from `GET /wp-json/leagueapps-widgets/v1/programs?site={slug}`, w
 If [Bold Builder](https://wordpress.org/plugins/bold-page-builder/) is active, every LeagueApps widget is also a Bold Builder element. Nothing needs to be set up.
 
 1. In Bold Builder's back-end or front-end editor, add an element to a column and pick **LeagueApps Schedule** or **LeagueApps Standings**. Searching "LeagueApps" in the element list finds both.
-2. Fill in the settings. The **General** tab has the site, program, sport and other options. The **Display** tab has the show/hide options.
+2. Fill in the settings. The **General** tab has the site, program, sport and other options. The schedule's **Event types** tab chooses which kinds of entries to include. The **Display** tab has the show/hide options.
 
 Differences from the block editor:
 
@@ -175,6 +181,7 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 - `leagueapps_widgets_game_fields`: response field names for games and teams (standings and schedule).
 - `leagueapps_widgets_excluded_game_states`: game states that are ignored.
 - `leagueapps_widgets_standings_programs`, `leagueapps_widgets_standings_rows`, `leagueapps_widgets_standings_columns`: change the standings output.
+- `leagueapps_widgets_event_type_keywords`: keywords that sort an entry's type into `game` or `practice` (anything else is `event`).
 - `leagueapps_widgets_schedule_games`: change which games the schedule shows, after filtering, sorting and the limit.
 - `leagueapps_widgets_schedule_date_format`: the date format for the schedule's day headings (default `l, ` plus the site's date format).
 

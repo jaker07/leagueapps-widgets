@@ -119,6 +119,9 @@ class Bold_Builder {
 			if ( '' !== $help ) {
 				$param['description'] = $help;
 			}
+			if ( ! empty( $def['group'] ) ) {
+				$param['group'] = $def['group'];
+			}
 			$params[] = $param;
 		}
 		return apply_filters( 'leagueapps_widgets_bold_builder_params', $params, $widget );

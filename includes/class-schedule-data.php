@@ -25,6 +25,7 @@ class Schedule_Data {
 				'home_score'   => array( 'team1Score', 'homeScore', 'homeTeamScore', 'team1.score', 'homeTeam.score' ),
 				'away_score'   => array( 'team2Score', 'awayScore', 'awayTeamScore', 'team2.score', 'awayTeam.score' ),
 				'state'        => array( 'state', 'status', 'gameStatus' ),
+				'type'         => array( 'type', 'eventType', 'gameType', 'event_type' ),
 				'start'        => array( 'startTime', 'startDateTime', 'start', 'startDate', 'date' ),
 				'location'     => array( 'locationName', 'location.name', 'location' ),
 				'sub_location' => array( 'subLocationName', 'subLocation.name', 'subLocation', 'fieldName', 'courtName' ),
@@ -47,8 +48,10 @@ class Schedule_Data {
 	 * @return array[] Each: id, start (Unix timestamp or null), has_time (false
 	 *                 for date-only values), home_id, home,
 	 *                 away_id, away, home_score, away_score (float or null),
-	 *                 has_score, state (uppercase string), counts (bool: a
-	 *                 final result that belongs in standings), title,
+	 *                 has_score, state (uppercase string), type (uppercase
+	 *                 string, may be ''), category ('game', 'practice' or
+	 *                 'event'), counts (bool: a final game result that
+	 *                 belongs in standings), title,
 	 *                 location, sub_location.
 	 */
 	public static function games( $schedule ) {
@@ -66,6 +69,13 @@ class Schedule_Data {
 			$state     = self::pick( $raw, $map['state'] );
 			$state     = is_string( $state ) ? strtoupper( $state ) : '';
 			$start     = self::pick( $raw, $map['start'] );
+			$type      = self::pick( $raw, $map['type'] );
+			$type      = is_string( $type ) ? strtoupper( trim( $type ) ) : '';
+			$category  = self::category(
+				$type,
+				null !== self::pick( $raw, $map['home_id'] ) || '' !== (string) self::pick( $raw, $map['home_name'] ),
+				null !== self::pick( $raw, $map['away_id'] ) || '' !== (string) self::pick( $raw, $map['away_name'] )
+			);
 
 			$games[] = array(
 				'id'           => self::pick( $raw, $map['game_id'] ),
@@ -79,7 +89,9 @@ class Schedule_Data {
 				'away_score'   => $has_score ? (float) $as : null,
 				'has_score'    => $has_score,
 				'state'        => $state,
-				'counts'       => $has_score && ! in_array( $state, $excluded, true ),
+				'type'         => $type,
+				'category'     => $category,
+				'counts'       => 'game' === $category && $has_score && ! in_array( $state, $excluded, true ),
 				'title'        => (string) self::pick( $raw, $map['title'] ),
 				'location'     => (string) self::pick( $raw, $map['location'] ),
 				'sub_location' => (string) self::pick( $raw, $map['sub_location'] ),
@@ -87,6 +99,34 @@ class Schedule_Data {
 			);
 		}
 		return $games;
+	}
+
+	/**
+	 * Groups an entry as 'game', 'practice' or 'event' (anything else).
+	 *
+	 * Uses the entry's type when it has one, matched by keyword so variants
+	 * like "SCRIMMAGE" or "TEAM_PRACTICE" are covered. Without a type, an
+	 * entry with two teams is a game and anything else is an event.
+	 */
+	public static function category( $type, $has_home, $has_away ) {
+		$keywords = apply_filters(
+			'leagueapps_widgets_event_type_keywords',
+			array(
+				'practice' => array( 'PRACTICE', 'TRAINING' ),
+				'game'     => array( 'GAME', 'MATCH', 'SCRIMMAGE', 'PLAYOFF' ),
+			)
+		);
+		if ( '' !== $type ) {
+			foreach ( $keywords as $category => $words ) {
+				foreach ( (array) $words as $word ) {
+					if ( false !== strpos( $type, strtoupper( $word ) ) ) {
+						return $category;
+					}
+				}
+			}
+			return 'event';
+		}
+		return $has_home && $has_away ? 'game' : 'event';
 	}
 
 	/**

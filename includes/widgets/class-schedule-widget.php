@@ -24,7 +24,7 @@ class Schedule_Widget extends Widget {
 	}
 
 	public function get_description() {
-		return __( 'Game schedule and results for a LeagueApps program.', 'leagueapps-widgets' );
+		return __( 'Games, practices and events for a LeagueApps program.', 'leagueapps-widgets' );
 	}
 
 	public function get_icon() {
@@ -43,24 +43,43 @@ class Schedule_Widget extends Widget {
 			'show'          => array(
 				'type'    => 'string',
 				'default' => 'all',
-				'label'   => __( 'Games to show', 'leagueapps-widgets' ),
+				'label'   => __( 'Time period', 'leagueapps-widgets' ),
 				'options' => array(
-					'all'      => __( 'All games', 'leagueapps-widgets' ),
-					'upcoming' => __( 'Upcoming games', 'leagueapps-widgets' ),
-					'past'     => __( 'Past games (most recent first)', 'leagueapps-widgets' ),
+					'all'      => __( 'Everything', 'leagueapps-widgets' ),
+					'upcoming' => __( 'Upcoming only', 'leagueapps-widgets' ),
+					'past'     => __( 'Past only (most recent first)', 'leagueapps-widgets' ),
 				),
 			),
 			'limit'         => array(
 				'type'    => 'integer',
 				'default' => 0,
-				'label'   => __( 'Maximum games', 'leagueapps-widgets' ),
-				'help'    => __( '0 shows every game.', 'leagueapps-widgets' ),
+				'label'   => __( 'Maximum entries', 'leagueapps-widgets' ),
+				'help'    => __( '0 shows everything.', 'leagueapps-widgets' ),
 			),
 			'team'          => array(
 				'type'    => 'string',
 				'default' => '',
 				'label'   => __( 'Team (optional)', 'leagueapps-widgets' ),
-				'help'    => __( 'Only show games for this team. Use the team name or team ID.', 'leagueapps-widgets' ),
+				'help'    => __( 'Only show this team’s games and practices. Use the team name or team ID.', 'leagueapps-widgets' ),
+			),
+			'include_games'     => array(
+				'type'    => 'boolean',
+				'default' => true,
+				'label'   => __( 'Include games', 'leagueapps-widgets' ),
+				'group'   => __( 'Event types', 'leagueapps-widgets' ),
+			),
+			'include_practices' => array(
+				'type'    => 'boolean',
+				'default' => true,
+				'label'   => __( 'Include practices', 'leagueapps-widgets' ),
+				'group'   => __( 'Event types', 'leagueapps-widgets' ),
+			),
+			'include_events'    => array(
+				'type'    => 'boolean',
+				'default' => true,
+				'label'   => __( 'Include other events', 'leagueapps-widgets' ),
+				'help'    => __( 'Anything that isn’t a game or practice, e.g. a photo day.', 'leagueapps-widgets' ),
+				'group'   => __( 'Event types', 'leagueapps-widgets' ),
 			),
 			'show_location' => array(
 				'type'    => 'boolean',
@@ -110,6 +129,9 @@ class Schedule_Widget extends Widget {
 		$games = array_filter(
 			$games,
 			function ( $game ) use ( $atts, $now, $team ) {
+				if ( empty( $atts[ 'include_' . $game['category'] . 's' ] ) ) {
+					return false;
+				}
 				if ( '' !== $team && ! $this->involves_team( $game, $team ) ) {
 					return false;
 				}
@@ -182,12 +204,13 @@ class Schedule_Widget extends Widget {
 			<?php if ( ! $games ) : ?>
 				<p class="law-empty">
 					<?php
+					$games_only = $atts['include_games'] && ! $atts['include_practices'] && ! $atts['include_events'];
 					if ( 'upcoming' === $atts['show'] ) {
-						esc_html_e( 'No upcoming games.', 'leagueapps-widgets' );
+						$games_only ? esc_html_e( 'No upcoming games.', 'leagueapps-widgets' ) : esc_html_e( 'Nothing coming up.', 'leagueapps-widgets' );
 					} elseif ( 'past' === $atts['show'] ) {
-						esc_html_e( 'No games played yet.', 'leagueapps-widgets' );
+						$games_only ? esc_html_e( 'No games played yet.', 'leagueapps-widgets' ) : esc_html_e( 'Nothing to show yet.', 'leagueapps-widgets' );
 					} else {
-						esc_html_e( 'No games scheduled.', 'leagueapps-widgets' );
+						$games_only ? esc_html_e( 'No games scheduled.', 'leagueapps-widgets' ) : esc_html_e( 'Nothing scheduled.', 'leagueapps-widgets' );
 					}
 					?>
 				</p>
@@ -249,7 +272,7 @@ class Schedule_Widget extends Widget {
 	}
 
 	private function row_class( array $game ) {
-		$classes = array( 'law-game' );
+		$classes = array( 'law-game', 'law-type-' . $game['category'] );
 		if ( $game['has_score'] ) {
 			$classes[] = 'law-game-final';
 		}
@@ -260,16 +283,33 @@ class Schedule_Widget extends Widget {
 	}
 
 	private function matchup_html( array $game, $team ) {
-		if ( '' === $game['home'] && '' === $game['away'] ) {
-			return esc_html( '' !== $game['title'] ? $game['title'] : '—' );
-		}
 		$side = function ( $key ) use ( $game, $team ) {
 			$name = '' !== $game[ $key ] ? $game[ $key ] : __( 'TBD', 'leagueapps-widgets' );
 			$mine = '' !== $team && ( strtolower( $game[ $key ] ) === $team || (string) $game[ $key . '_id' ] === $team );
 			return '<span class="law-team' . ( $mine ? ' law-team-selected' : '' ) . '">' . esc_html( $name ) . '</span>';
 		};
-		/* translators: 1: first team, 2: second team */
-		return sprintf( esc_html__( '%1$s vs %2$s', 'leagueapps-widgets' ), $side( 'home' ), $side( 'away' ) );
+		if ( 'game' === $game['category'] ) {
+			/* translators: 1: first team, 2: second team */
+			return sprintf( esc_html__( '%1$s vs %2$s', 'leagueapps-widgets' ), $side( 'home' ), $side( 'away' ) );
+		}
+
+		// Practices and other events: a label, then whichever teams are listed.
+		$teams = array();
+		foreach ( array( 'home', 'away' ) as $key ) {
+			if ( '' !== $game[ $key ] ) {
+				$teams[] = $side( $key );
+			}
+		}
+		if ( 'practice' === $game['category'] ) {
+			$label = __( 'Practice', 'leagueapps-widgets' );
+		} else {
+			$label = '' !== $game['title'] ? $game['title'] : __( 'Event', 'leagueapps-widgets' );
+		}
+		$html = '<span class="law-event-label">' . esc_html( $label ) . '</span>';
+		if ( $teams ) {
+			$html .= ' <span class="law-event-sep" aria-hidden="true">·</span> ' . implode( ', ', $teams );
+		}
+		return $html;
 	}
 
 	private function is_canceled( array $game ) {
