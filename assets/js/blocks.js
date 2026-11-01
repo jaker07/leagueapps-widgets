@@ -21,6 +21,11 @@
 		};
 		var common = { key: name, label: def.label || name, help: def.help || undefined };
 
+		// e.g. the site picker when only one site is configured.
+		if ( def.hidden && ! value ) {
+			return null;
+		}
+
 		if ( def.type === 'boolean' ) {
 			return el( c.ToggleControl, Object.assign( common, { checked: !! value, onChange: set } ) );
 		}
@@ -28,6 +33,10 @@
 			var options = Object.keys( def.options ).map( function ( k ) {
 				return { value: k, label: def.options[ k ] };
 			} );
+			if ( value && ! def.options.hasOwnProperty( value ) ) {
+				// Saved value no longer offered (e.g. a deleted site): keep it visible.
+				options.push( { value: value, label: value } );
+			}
 			return el( c.SelectControl, Object.assign( common, { value: value, options: options, onChange: set } ) );
 		}
 		if ( def.type === 'integer' ) {

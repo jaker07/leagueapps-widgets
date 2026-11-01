@@ -14,6 +14,13 @@ class Widget_Registry {
 	/** @var Widget[] */
 	private $widgets = array();
 
+	/** @var Settings */
+	private $settings;
+
+	public function __construct( Settings $settings ) {
+		$this->settings = $settings;
+	}
+
 	public function hooks() {
 		// Priority 20 so widgets registered on `leagueapps_widgets_register` are all in.
 		add_action( 'init', array( $this, 'register_all' ), 20 );
@@ -46,7 +53,7 @@ class Widget_Registry {
 		foreach ( $this->widgets as $widget ) {
 			add_shortcode( $widget->get_shortcode_tag(), $this->shortcode_callback( $widget ) );
 
-			$schema = $widget->get_attributes();
+			$schema = $widget->get_all_attributes();
 			register_block_type(
 				$widget->get_block_name(),
 				array(
@@ -65,7 +72,7 @@ class Widget_Registry {
 				'title'       => $widget->get_title(),
 				'description' => $widget->get_description(),
 				'icon'        => $widget->get_icon(),
-				'attributes'  => $schema,
+				'attributes'  => $this->editor_schema( $schema ),
 			);
 		}
 
@@ -74,6 +81,34 @@ class Widget_Registry {
 			'window.leagueAppsWidgets = ' . wp_json_encode( $editor_data ) . ';',
 			'before'
 		);
+	}
+
+	/**
+	 * Schema for the block sidebar: the site attribute becomes a dropdown of
+	 * configured sites, hidden when there is only one.
+	 */
+	private function editor_schema( array $schema ) {
+		$sites = $this->settings->get_sites();
+		foreach ( $schema as $name => $def ) {
+			if ( empty( $def['is_site'] ) ) {
+				continue;
+			}
+			$default = reset( $sites );
+			$label   = __( 'Default', 'leagueapps-widgets' );
+			if ( $default && 0 !== strcasecmp( $default['label'], $label ) ) {
+				/* translators: %s: default site label */
+				$label = sprintf( __( '%s (default)', 'leagueapps-widgets' ), $default['label'] );
+			}
+			$options = array( '' => $label );
+			foreach ( array_slice( $sites, 1, null, true ) as $slug => $site ) {
+				$options[ $slug ] = $site['label'];
+			}
+			$def['options'] = $options;
+			$def['hidden']  = count( $sites ) < 2;
+			unset( $def['is_site'] );
+			$schema[ $name ] = $def;
+		}
+		return $schema;
 	}
 
 	private function block_attributes( array $schema ) {

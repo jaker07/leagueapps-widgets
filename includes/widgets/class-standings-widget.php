@@ -1,7 +1,6 @@
 <?php
 namespace LeagueApps_Widgets\Widgets;
 
-use LeagueApps_Widgets\Api_Client;
 use LeagueApps_Widgets\Standings_Calculator;
 use LeagueApps_Widgets\Widget;
 
@@ -12,15 +11,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Shortcode: [leagueapps_standings sport="Soccer"]
  *            [leagueapps_standings program_id="123456" ranking="points"]
+ *            [leagueapps_standings sport="Hockey" site="hockey"]
  */
 class Standings_Widget extends Widget {
-
-	/** @var Api_Client */
-	private $api;
-
-	public function __construct( Api_Client $api ) {
-		$this->api = $api;
-	}
 
 	public function get_id() {
 		return 'standings';
@@ -85,7 +78,12 @@ class Standings_Widget extends Widget {
 			return $this->render_error( __( 'Set a sport or a program ID.', 'leagueapps-widgets' ) );
 		}
 
-		$programs = $this->find_programs( $atts );
+		$api = $this->api( $atts );
+		if ( is_wp_error( $api ) ) {
+			return $this->render_error( $api );
+		}
+
+		$programs = $this->find_programs( $api, $atts );
 		if ( is_wp_error( $programs ) ) {
 			return $this->render_error( $programs );
 		}
@@ -95,12 +93,12 @@ class Standings_Widget extends Widget {
 
 		$html = '';
 		foreach ( $programs as $program ) {
-			$schedule = $this->api->get_program_schedule( $program['id'] );
+			$schedule = $api->get_program_schedule( $program['id'] );
 			if ( is_wp_error( $schedule ) ) {
 				$html .= $this->render_error( $schedule );
 				continue;
 			}
-			$teams = $this->api->get_program_teams( $program['id'] );
+			$teams = $api->get_program_teams( $program['id'] );
 			$rows  = Standings_Calculator::calculate( $schedule, is_wp_error( $teams ) ? array() : $teams, $atts['ranking'] );
 			$html .= $this->render_table( $program, $rows, $atts );
 		}
@@ -111,8 +109,8 @@ class Standings_Widget extends Widget {
 	/**
 	 * @return array[]|\WP_Error List of array( 'id' => ..., 'name' => ... ).
 	 */
-	private function find_programs( array $atts ) {
-		$list = $this->api->get_current_programs();
+	private function find_programs( $api, array $atts ) {
+		$list = $api->get_current_programs();
 		if ( is_wp_error( $list ) ) {
 			// A specific program can still be shown without the program list.
 			return '' !== $atts['program_id'] ? array( array( 'id' => $atts['program_id'], 'name' => '' ) ) : $list;

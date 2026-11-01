@@ -11,6 +11,10 @@ defined( 'ABSPATH' ) || exit;
  * dynamic block `leagueapps-widgets/{id}` with sidebar controls generated
  * from the schema — no per-widget JavaScript needed.
  *
+ * Every widget also gets a `site` attribute (the slug of a site from
+ * Settings > LeagueApps, '' for the default site). Call $this->api( $atts )
+ * inside render() to get that site's API client.
+ *
  * Attribute schema entries:
  *   'name' => array(
  *       'type'    => 'string' | 'integer' | 'boolean',
@@ -28,6 +32,31 @@ abstract class Widget {
 	abstract public function get_title();
 
 	abstract public function get_attributes();
+
+	/** Widget attributes plus the shared `site` attribute. */
+	final public function get_all_attributes() {
+		return array_merge(
+			array(
+				'site' => array(
+					'type'    => 'string',
+					'default' => '',
+					'label'   => __( 'LeagueApps site', 'leagueapps-widgets' ),
+					'help'    => __( 'Which site from Settings > LeagueApps to read from.', 'leagueapps-widgets' ),
+					'is_site' => true,
+				),
+			),
+			$this->get_attributes()
+		);
+	}
+
+	/**
+	 * API client for the site chosen in the widget's attributes.
+	 *
+	 * @return Api_Client|\WP_Error
+	 */
+	protected function api( array $atts ) {
+		return Plugin::instance()->api( isset( $atts['site'] ) ? $atts['site'] : '' );
+	}
 
 	/**
 	 * Render the widget.
@@ -61,7 +90,7 @@ abstract class Widget {
 	public function normalize_attributes( $raw ) {
 		$raw = is_array( $raw ) ? $raw : array();
 		$out = array();
-		foreach ( $this->get_attributes() as $name => $def ) {
+		foreach ( $this->get_all_attributes() as $name => $def ) {
 			$value = array_key_exists( $name, $raw ) ? $raw[ $name ] : ( isset( $def['default'] ) ? $def['default'] : null );
 			switch ( isset( $def['type'] ) ? $def['type'] : 'string' ) {
 				case 'integer':
@@ -71,7 +100,7 @@ abstract class Widget {
 					$value = is_bool( $value ) ? $value : in_array( strtolower( (string) $value ), array( '1', 'true', 'yes', 'on' ), true );
 					break;
 				default:
-					$value = sanitize_text_field( (string) $value );
+					$value = ! empty( $def['is_site'] ) ? Settings::normalize_slug( $value ) : sanitize_text_field( (string) $value );
 			}
 			if ( ! empty( $def['options'] ) && ! array_key_exists( $value, $def['options'] ) ) {
 				$value = $def['default'];

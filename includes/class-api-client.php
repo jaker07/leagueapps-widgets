@@ -4,25 +4,38 @@ namespace LeagueApps_Widgets;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Thin, cached client for the LeagueApps Public API.
+ * Thin, cached client for one LeagueApps site's Public API.
  *
  * Authentication uses the site's public API key in the `la-api-key` header.
+ * Get an instance with Plugin::instance()->api( $slug ) — one per configured site.
  */
 class Api_Client {
 
-	const BASE_URL        = 'https://public.leagueapps.io';
-	const CACHE_VERSION   = 'leagueapps_widgets_cache_version';
+	const BASE_URL         = 'https://public.leagueapps.io';
+	const CACHE_VERSION    = 'leagueapps_widgets_cache_version';
 	const TRANSIENT_PREFIX = 'law_';
 
 	/** @var Settings */
 	private $settings;
 
-	public function __construct( Settings $settings ) {
+	/** @var array slug, label, site_id, api_key */
+	private $site;
+
+	public function __construct( Settings $settings, array $site ) {
 		$this->settings = $settings;
+		$this->site     = wp_parse_args( $site, array( 'slug' => '', 'label' => '', 'site_id' => '', 'api_key' => '' ) );
+	}
+
+	public function get_site_slug() {
+		return $this->site['slug'];
+	}
+
+	public function get_site_label() {
+		return $this->site['label'];
 	}
 
 	public function is_configured() {
-		return '' !== $this->settings->get( 'site_id' ) && '' !== $this->settings->get( 'api_key' );
+		return '' !== (string) $this->site['site_id'] && '' !== (string) $this->site['api_key'];
 	}
 
 	/** Programs currently open/running for the site. */
@@ -45,9 +58,13 @@ class Api_Client {
 	 */
 	public function site_get( $path, array $query = array() ) {
 		if ( ! $this->is_configured() ) {
-			return new \WP_Error( 'law_not_configured', __( 'LeagueApps site ID and API key are not set (Settings > LeagueApps).', 'leagueapps-widgets' ) );
+			return new \WP_Error(
+				'law_not_configured',
+				/* translators: %s: site label */
+				sprintf( __( 'The site ID or API key for the LeagueApps site "%s" is not set (Settings > LeagueApps).', 'leagueapps-widgets' ), $this->site['label'] )
+			);
 		}
-		$site_id = $this->settings->get( 'site_id' );
+		$site_id = $this->site['site_id'];
 		return $this->get( '/v1/sites/' . rawurlencode( $site_id ) . '/' . ltrim( $path, '/' ), $query );
 	}
 
@@ -78,7 +95,7 @@ class Api_Client {
 			array(
 				'timeout' => 15,
 				'headers' => array(
-					'la-api-key' => $this->settings->get( 'api_key' ),
+					'la-api-key' => $this->site['api_key'],
 					'Accept'     => 'application/json',
 				),
 			)

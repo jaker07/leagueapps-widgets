@@ -44,6 +44,17 @@ The plugin doesn't update itself from WordPress.org. To install a new version, u
 2. Go to **Settings → LeagueApps** and enter your LeagueApps **Site ID** and **public API key**. The key is sent in the `la-api-key` header to `https://public.leagueapps.io`.
 3. API responses are cached as transients. The default is 15 minutes. You can change that and clear the cache on the same settings page.
 
+### More than one LeagueApps site
+
+Some organizations have a separate LeagueApps site for each sport. To show data from several of them:
+
+1. On **Settings → LeagueApps**, click **Add site** for each extra site and fill in a **label** (e.g. "Hockey"), its **site ID** and its **API key**. The **slug** is filled in from the label if you leave it blank (e.g. `hockey`).
+2. Pick the site for each widget:
+   - **Block:** choose it in the **LeagueApps site** dropdown in the block sidebar. The dropdown only appears once you have more than one site.
+   - **Shortcode:** add `site="slug"`, e.g. `[leagueapps_standings sport="Hockey" site="hockey"]`.
+
+The first site in the list is the default, and widgets without a `site` use it. If you only have one LeagueApps site, nothing changes for you. If you're upgrading from an earlier version, your existing site becomes the default automatically. Widgets store the slug, so you can change a site's ID or API key without editing any pages. Changing a slug, though, breaks widgets that use the old one. If a widget names a site that doesn't exist, administrators see an error and visitors see nothing.
+
 ## Widgets
 
 ### Standings
@@ -51,12 +62,14 @@ The plugin doesn't update itself from WordPress.org. To install a new version, u
 ```
 [leagueapps_standings sport="Soccer"]
 [leagueapps_standings program_id="123456" ranking="points" show_scores="false"]
+[leagueapps_standings sport="Hockey" site="hockey"]
 ```
 
 Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same options.
 
 | Attribute     | Default   | Notes |
 |---------------|-----------|-------|
+| `site`        | default site | Slug of a site from Settings → LeagueApps. Every widget has this option. |
 | `sport`       | —         | Matches the program's sport in LeagueApps (case-insensitive). Shows every current program in that sport. |
 | `program_id`  | —         | Show one program instead. |
 | `ranking`     | `win_pct` | `win_pct` or `points` (3 for a win, 1 for a tie). |
@@ -72,12 +85,27 @@ Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same opt
 2. Register it in `Plugin::__construct()`, or from another plugin:
 
 ```php
-add_action( 'leagueapps_widgets_register', function ( $registry, $api ) {
-    $registry->register( new My_Schedule_Widget( $api ) );
+add_action( 'leagueapps_widgets_register', function ( $registry, $plugin ) {
+    $registry->register( new My_Schedule_Widget() );
 }, 10, 2 );
 ```
 
-You get the shortcode `[leagueapps_{id}]` and the block `leagueapps-widgets/{id}` automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Use `$api->site_get( 'path' )` for any `/v1/sites/{siteId}/…` endpoint.
+You get the shortcode `[leagueapps_{id}]` and the block `leagueapps-widgets/{id}` automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Every widget also gets the `site` option automatically, so don't declare it yourself.
+
+Inside `render()`, get the API client for the widget's chosen site and use `site_get( 'path' )` for any `/v1/sites/{siteId}/…` endpoint:
+
+```php
+public function render( array $atts ) {
+    $api = $this->api( $atts );
+    if ( is_wp_error( $api ) ) {
+        return $this->render_error( $api );
+    }
+    $data = $api->site_get( 'locations' );
+    // …
+}
+```
+
+Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` returns the client for a site by slug (`''` for the default).
 
 ## Hooks
 
