@@ -2,9 +2,45 @@
 
 A WordPress plugin for showing LeagueApps data on your site. Each widget is available as both a **shortcode** and a **block**.
 
+## Installation
+
+**Requirements:** WordPress 6.1 or later and PHP 7.4 or later.
+
+### Option 1: Upload a ZIP in the WordPress admin (easiest)
+
+1. Make a ZIP of the plugin:
+   - **From GitHub:** on the repository page, click **Code → Download ZIP**. If the repository is private, you need to be signed in to GitHub.
+   - **From a local clone** (this gives a cleaner ZIP without development files):
+
+     ```bash
+     git archive --format=zip --prefix=leagueapps-widgets/ -o leagueapps-widgets.zip main
+     ```
+2. In WordPress, go to **Plugins → Add New Plugin → Upload Plugin**.
+3. Choose the ZIP file and click **Install Now**.
+4. Click **Activate Plugin**.
+
+A ZIP downloaded from GitHub unpacks to a folder named `leagueapps-widgets-main`. That works fine. WordPress identifies the plugin by its header, not the folder name.
+
+### Option 2: Copy the files to the server
+
+1. Upload the plugin folder to `wp-content/plugins/leagueapps-widgets/` over SFTP or FTP, or with your host's file manager. `leagueapps-widgets.php` must be directly inside that folder.
+2. In WordPress, go to **Plugins** and click **Activate** under **LeagueApps Widgets**.
+
+### Option 3: WP-CLI
+
+If you have shell access to the server:
+
+```bash
+wp plugin install /path/to/leagueapps-widgets.zip --activate
+```
+
+### Updating
+
+The plugin doesn't update itself from WordPress.org. To install a new version, upload the new ZIP through **Plugins → Add New Plugin → Upload Plugin** and choose **Replace current with uploaded** when WordPress asks. Your settings are kept. Deleting the plugin from the Plugins screen removes its settings.
+
 ## Setup
 
-1. Install and activate the plugin.
+1. Install and activate the plugin (see [Installation](#installation)).
 2. Go to **Settings → LeagueApps** and enter your LeagueApps **Site ID** and **public API key**. The key is sent in the `la-api-key` header to `https://public.leagueapps.io`.
 3. API responses are cached as transients. The default is 15 minutes. You can change that and clear the cache on the same settings page.
 

@@ -1,0 +1,4 @@
+# Keep development files out of `git archive` ZIPs.
+/.claude export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
