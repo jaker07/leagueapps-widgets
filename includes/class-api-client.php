@@ -69,6 +69,17 @@ class Api_Client {
 		return apply_filters( 'leagueapps_widgets_programs', $programs, $this->get_site_slug() );
 	}
 
+	/**
+	 * The site's locations (with addresses), keyed for Schedule_Data::find_location().
+	 * Returns an empty list if they can't be loaded, so widgets still render.
+	 *
+	 * @return array[]
+	 */
+	public function get_locations() {
+		$response = $this->site_get( 'locations' );
+		return is_wp_error( $response ) ? array() : Schedule_Data::locations( $response );
+	}
+
 	public function get_program_schedule( $program_id ) {
 		return $this->site_get( 'programs/' . rawurlencode( (string) $program_id ) . '/schedule' );
 	}

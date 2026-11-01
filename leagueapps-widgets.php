@@ -24,6 +24,7 @@ require_once LAW_DIR . 'includes/class-widget-registry.php';
 require_once LAW_DIR . 'includes/class-rest-controller.php';
 require_once LAW_DIR . 'includes/integrations/class-bold-builder.php';
 require_once LAW_DIR . 'includes/class-schedule-data.php';
+require_once LAW_DIR . 'includes/class-map-link.php';
 require_once LAW_DIR . 'includes/class-standings-calculator.php';
 require_once LAW_DIR . 'includes/widgets/class-standings-widget.php';
 require_once LAW_DIR . 'includes/widgets/class-schedule-widget.php';

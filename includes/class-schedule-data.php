@@ -28,6 +28,7 @@ class Schedule_Data {
 				'type'         => array( 'type', 'eventType', 'gameType', 'event_type' ),
 				'start'        => array( 'startTime', 'startDateTime', 'start', 'startDate', 'date' ),
 				'location'     => array( 'locationName', 'location.name', 'location' ),
+				'location_id'  => array( 'locationId', 'location.locationId', 'location.id' ),
 				'sub_location' => array( 'subLocationName', 'subLocation.name', 'subLocation', 'fieldName', 'courtName' ),
 				'title'        => array( 'name', 'title', 'eventName', 'description' ),
 				'team_list'    => array( 'teams' ),
@@ -52,7 +53,8 @@ class Schedule_Data {
 	 *                 string, may be ''), category ('game', 'practice' or
 	 *                 'event'), counts (bool: a final game result that
 	 *                 belongs in standings), title,
-	 *                 location, sub_location.
+	 *                 location, location_id, place (an embedded location from
+	 *                 Schedule_Data::location(), or null), sub_location.
 	 */
 	public static function games( $schedule ) {
 		$map      = self::field_map();
@@ -94,6 +96,9 @@ class Schedule_Data {
 				'counts'       => 'game' === $category && $has_score && ! in_array( $state, $excluded, true ),
 				'title'        => (string) self::pick( $raw, $map['title'] ),
 				'location'     => (string) self::pick( $raw, $map['location'] ),
+				'location_id'  => self::pick( $raw, $map['location_id'] ),
+				// Some responses embed the address in the game's location object.
+				'place'        => isset( $raw['location'] ) && is_array( $raw['location'] ) ? self::location( $raw['location'] ) : null,
 				'sub_location' => (string) self::pick( $raw, $map['sub_location'] ),
 				'raw'          => $raw,
 			);
@@ -148,6 +153,95 @@ class Schedule_Data {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Locations from a locations response, keyed by location ID.
+	 *
+	 * @return array[] See location().
+	 */
+	public static function locations( $response ) {
+		$out = array();
+		foreach ( self::list_from( $response, array( 'locations' ) ) as $raw ) {
+			if ( is_array( $raw ) ) {
+				$location = self::location( $raw );
+				$key      = null !== $location['id'] ? 'id:' . $location['id'] : 'name:' . strtolower( $location['name'] );
+				$out[ $key ] = $location;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * One location, normalized.
+	 *
+	 * Field names here are best guesses at the LeagueApps response; adjust
+	 * them with the `leagueapps_widgets_location_fields` filter.
+	 *
+	 * @return array id, name, address (one line, may be ''), lat, lng (floats or null).
+	 */
+	public static function location( array $raw ) {
+		$map = apply_filters(
+			'leagueapps_widgets_location_fields',
+			array(
+				'id'      => array( 'locationId', 'id' ),
+				'name'    => array( 'name', 'locationName' ),
+				'full'    => array( 'formattedAddress', 'fullAddress' ),
+				'street'  => array( 'address1', 'streetAddress', 'street', 'address.address1', 'address.street', 'address' ),
+				'city'    => array( 'city', 'address.city' ),
+				'state'   => array( 'state', 'stateProvince', 'region', 'address.state' ),
+				'zip'     => array( 'zipCode', 'zip', 'postalCode', 'address.zipCode', 'address.zip', 'address.postalCode' ),
+				'country' => array( 'country', 'address.country' ),
+				'lat'     => array( 'latitude', 'lat', 'geo.lat', 'coordinates.lat' ),
+				'lng'     => array( 'longitude', 'lng', 'lon', 'geo.lng', 'geo.lon', 'coordinates.lng' ),
+			)
+		);
+
+		$address = trim( (string) self::pick( $raw, $map['full'] ) );
+		if ( '' === $address ) {
+			// The second address line ("Suite 2", "Rear entrance") tends to confuse map searches, so it's left out.
+			$street   = trim( (string) self::pick( $raw, $map['street'] ) );
+			$region   = trim( implode( ' ', array_filter( array( (string) self::pick( $raw, $map['state'] ), (string) self::pick( $raw, $map['zip'] ) ) ) ) );
+			$address  = implode( ', ', array_filter( array( $street, (string) self::pick( $raw, $map['city'] ), $region, (string) self::pick( $raw, $map['country'] ) ) ) );
+		}
+
+		$lat = self::pick( $raw, $map['lat'] );
+		$lng = self::pick( $raw, $map['lng'] );
+		$has_coords = is_numeric( $lat ) && is_numeric( $lng ) && ! ( 0.0 === (float) $lat && 0.0 === (float) $lng );
+
+		return array(
+			'id'      => self::pick( $raw, $map['id'] ),
+			'name'    => (string) self::pick( $raw, $map['name'] ),
+			'address' => $address,
+			'lat'     => $has_coords ? (float) $lat : null,
+			'lng'     => $has_coords ? (float) $lng : null,
+		);
+	}
+
+	/**
+	 * The full location for a game: its embedded place, or a match in the
+	 * site's locations by ID, then by name.
+	 *
+	 * @param array   $game      From games().
+	 * @param array[] $locations From locations().
+	 * @return array|null See location().
+	 */
+	public static function find_location( array $game, array $locations ) {
+		$place = $game['place'];
+		if ( $place && ( '' !== $place['address'] || null !== $place['lat'] ) ) {
+			return $place;
+		}
+		if ( null !== $game['location_id'] && isset( $locations[ 'id:' . $game['location_id'] ] ) ) {
+			return $locations[ 'id:' . $game['location_id'] ];
+		}
+		if ( '' !== $game['location'] ) {
+			foreach ( $locations as $location ) {
+				if ( 0 === strcasecmp( trim( $location['name'] ), trim( $game['location'] ) ) ) {
+					return $location;
+				}
+			}
+		}
+		return $place;
 	}
 
 	/**

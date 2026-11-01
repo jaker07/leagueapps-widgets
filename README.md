@@ -107,6 +107,8 @@ Block: **LeagueApps Schedule** (Widgets category). Its sidebar has the same opti
 
 **Event types:** each schedule entry counts as a game, a practice or another event. The type comes from the entry's type field in LeagueApps, matched by keyword, so `PRACTICE` and `TEAM_PRACTICE` both count as practices. `GAME`, `MATCH`, `SCRIMMAGE` and `PLAYOFF` count as games, and any other type is an event. An entry with no type counts as a game if it has two teams, and as an event otherwise. The field names and keywords are guesses until checked against real API responses; adjust them with the `leagueapps_widgets_game_fields` and `leagueapps_widgets_event_type_keywords` filters. Practices are shown as "Practice · Team", and other events by their name. Standings only count games.
 
+**Map links:** a location with a known address or coordinates is a link to a map. On iPhone, iPad and Mac it opens Apple Maps. On Android it opens the default maps app (or asks which one to use). Everywhere else, and without JavaScript, it opens a Google Maps search in a new tab. Addresses come from the site's `/v1/sites/{siteId}/locations` endpoint, matched to each entry by location ID, then by name. If an entry includes its own address, that's used instead. A location with only a name, such as "Back Lot", isn't linked, because a search for a bare name could point to the wrong place. The location field names are guesses until checked against real API responses; adjust them with the `leagueapps_widgets_location_fields` filter. Locations are only requested when the schedule shows them, and they're cached like other API responses.
+
 Entries are grouped by day. Dates and times use the time zone, date format and time format from **Settings → General**. Games without a date are listed last under "Date to be announced". Canceled games are crossed out. Schedule entries without teams, such as a photo day, show their name instead of a matchup.
 
 The layout adapts to the space it's in. In narrow spaces like phones and sidebars, the location moves under the matchup. In very narrow spaces, each game is stacked.
@@ -156,6 +158,8 @@ add_action( 'leagueapps_widgets_register', function ( $registry, $plugin ) {
 
 You get the shortcode `[leagueapps_{id}]`, the block `leagueapps-widgets/{id}` and, when Bold Builder is active, a Bold Builder element automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Every widget also gets the `site` option automatically, so don't declare it yourself. To give a string attribute one of these dropdowns, add `'control' => 'program'` or `'control' => 'sport'` (and optionally `'empty_label'`) to its schema entry. Add `'filter_by' => 'sport'` to a program control to narrow it by a sport attribute.
 
+To show a location in a new widget, use `Map_Link::html( $text, $location )`. It links the text to the device's maps app, using a location from `Schedule_Data::find_location()` or `Schedule_Data::location()`, and falls back to plain text when there's no address.
+
 Inside `render()`, get the API client for the widget's chosen site and use `site_get( 'path' )` for any `/v1/sites/{siteId}/…` endpoint:
 
 ```php
@@ -181,6 +185,8 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 - `leagueapps_widgets_game_fields`: response field names for games and teams (standings and schedule).
 - `leagueapps_widgets_excluded_game_states`: game states that are ignored.
 - `leagueapps_widgets_standings_programs`, `leagueapps_widgets_standings_rows`, `leagueapps_widgets_standings_columns`: change the standings output.
+- `leagueapps_widgets_location_fields`: response field names for locations (name, address parts, coordinates).
+- `leagueapps_widgets_link_location`: whether a location is linked to a map (default: when its address or coordinates are known).
 - `leagueapps_widgets_event_type_keywords`: keywords that sort an entry's type into `game` or `practice` (anything else is `event`).
 - `leagueapps_widgets_schedule_games`: change which games the schedule shows, after filtering, sorting and the limit.
 - `leagueapps_widgets_schedule_date_format`: the date format for the schedule's day headings (default `l, ` plus the site's date format).

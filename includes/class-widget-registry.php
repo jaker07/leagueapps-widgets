@@ -40,6 +40,7 @@ class Widget_Registry {
 
 	public function register_all() {
 		wp_register_style( self::STYLE_HANDLE, LAW_URL . 'assets/css/frontend.css', array(), LAW_VERSION );
+		Map_Link::register_script();
 		wp_register_script(
 			self::EDITOR_HANDLE,
 			LAW_URL . 'assets/js/blocks.js',

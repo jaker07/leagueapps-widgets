@@ -1,6 +1,7 @@
 <?php
 namespace LeagueApps_Widgets\Widgets;
 
+use LeagueApps_Widgets\Map_Link;
 use LeagueApps_Widgets\Schedule_Data;
 use LeagueApps_Widgets\Widget;
 
@@ -115,7 +116,17 @@ class Schedule_Widget extends Widget {
 			return $this->render_error( $schedule );
 		}
 
-		$games   = $this->select_games( Schedule_Data::games( $schedule ), $atts );
+		$games = $this->select_games( Schedule_Data::games( $schedule ), $atts );
+
+		// Addresses for map links: only fetched when locations are shown.
+		if ( $atts['show_location'] && $games ) {
+			$locations = $api->get_locations();
+			foreach ( $games as &$game ) {
+				$game['place'] = Schedule_Data::find_location( $game, $locations );
+			}
+			unset( $game );
+		}
+
 		$heading = '' !== $atts['title'] ? $atts['title'] : $this->program_name( $api, $atts['program_id'] );
 
 		return '<div class="law-widget law-schedule">' . $this->render_list( $games, $heading, $atts ) . '</div>';
@@ -251,11 +262,11 @@ class Schedule_Widget extends Widget {
 									<td class="law-col-game">
 										<?php echo $this->matchup_html( $game, $team ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in matchup_html(). ?>
 										<?php if ( $atts['show_location'] && '' !== $location ) : ?>
-											<span class="law-game-location"><?php echo esc_html( $location ); ?></span>
+											<span class="law-game-location"><?php echo Map_Link::html( $location, $game['place'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in Map_Link::html(). ?></span>
 										<?php endif; ?>
 									</td>
 									<?php if ( $atts['show_location'] ) : ?>
-										<td class="law-col-location"><?php echo esc_html( $location ); ?></td>
+										<td class="law-col-location"><?php echo Map_Link::html( $location, $game['place'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in Map_Link::html(). ?></td>
 									<?php endif; ?>
 									<?php if ( $atts['show_results'] ) : ?>
 										<td class="law-col-result"><?php echo esc_html( $this->result_text( $game ) ); ?></td>
