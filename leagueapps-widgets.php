@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LeagueApps Widgets
  * Description:       Display LeagueApps data (standings and more) on your site via shortcodes and blocks.
- * Version:           0.1.0
+ * Version:           1.0.0
  * Requires at least: 6.1
  * Requires PHP:      7.4
  * Author:            jaker07
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LAW_VERSION', '0.1.0' );
+define( 'LAW_VERSION', '1.0.0' );
 define( 'LAW_FILE', __FILE__ );
 define( 'LAW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LAW_URL', plugin_dir_url( __FILE__ ) );
