@@ -39,13 +39,14 @@ final class Plugin {
 
 		// Built-in widgets.
 		$this->widgets->register( new Widgets\Standings_Widget() );
+		$this->widgets->register( new Widgets\Schedule_Widget() );
 
 		/**
 		 * Register additional widgets.
 		 *
 		 * Example:
 		 *   add_action( 'leagueapps_widgets_register', function ( $registry, $plugin ) {
-		 *       $registry->register( new My_Schedule_Widget() );
+		 *       $registry->register( new My_Locations_Widget() );
 		 *   }, 10, 2 );
 		 */
 		do_action( 'leagueapps_widgets_register', $this->widgets, $this );

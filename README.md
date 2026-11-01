@@ -77,7 +77,33 @@ Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same opt
 | `show_scores` | `true`    | Shows the PF / PA / Diff columns. |
 | `title`       | program name | Overrides the heading. |
 
-**How standings are calculated:** the LeagueApps Public API doesn't document a standings endpoint. Standings are worked out from completed games in `/v1/sites/{siteId}/programs/{programId}/schedule`, and teams come from `/programs/{programId}/teams`. The code tries several common names for each response field. If your API responses use different names, adjust the mapping with the `leagueapps_widgets_game_fields` filter (see `includes/class-standings-calculator.php`).
+**How standings are calculated:** the LeagueApps Public API doesn't document a standings endpoint. Standings are worked out from completed games in `/v1/sites/{siteId}/programs/{programId}/schedule`, and teams come from `/programs/{programId}/teams`. The code tries several common names for each response field. If your API responses use different names, adjust the mapping with the `leagueapps_widgets_game_fields` filter (see `includes/class-schedule-data.php`). The schedule widget uses the same mapping.
+
+### Schedule
+
+```
+[leagueapps_schedule program_id="123456"]
+[leagueapps_schedule program_id="123456" show="upcoming" limit="5"]
+[leagueapps_schedule program_id="123456" team="Lions" show_location="false"]
+[leagueapps_schedule program_id="123456" site="hockey"]
+```
+
+Block: **LeagueApps Schedule** (Widgets category). Its sidebar has the same options.
+
+| Attribute       | Default      | Notes |
+|-----------------|--------------|-------|
+| `site`          | default site | Slug of a site from Settings → LeagueApps. |
+| `program_id`    | —            | Required. The program whose schedule to show. |
+| `show`          | `all`        | `all` (soonest first), `upcoming` (soonest first) or `past` (most recent first). A game counts as past once it has a score or its start time has passed. |
+| `limit`         | `0`          | Maximum number of games. `0` shows all of them. |
+| `team`          | —            | Only games involving this team, by name (case-insensitive) or team ID. That team's name is shown in bold. |
+| `show_location` | `true`       | Shows the location and field/court. |
+| `show_results`  | `true`       | Shows scores, or "Canceled" / "Postponed". |
+| `title`         | program name | Overrides the heading. |
+
+Games are grouped by day. Dates and times use the time zone, date format and time format from **Settings → General**. Games without a date are listed last under "Date to be announced". Canceled games are crossed out. Schedule entries without teams, such as a photo day, show their name instead of a matchup.
+
+The layout adapts to the space it's in. In narrow spaces like phones and sidebars, the location moves under the matchup. In very narrow spaces, each game is stacked.
 
 ## Adding a widget
 
@@ -111,9 +137,11 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 
 - `leagueapps_widgets_register` (action): register widgets.
 - `leagueapps_widgets_api_base_url`: override the API host.
-- `leagueapps_widgets_game_fields`: response field names used for standings.
+- `leagueapps_widgets_game_fields`: response field names for games and teams (standings and schedule).
 - `leagueapps_widgets_excluded_game_states`: game states that are ignored.
 - `leagueapps_widgets_standings_programs`, `leagueapps_widgets_standings_rows`, `leagueapps_widgets_standings_columns`: change the standings output.
+- `leagueapps_widgets_schedule_games`: change which games the schedule shows, after filtering, sorting and the limit.
+- `leagueapps_widgets_schedule_date_format`: the date format for the schedule's day headings (default `l, ` plus the site's date format).
 
 ## Development
 

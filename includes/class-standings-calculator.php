@@ -8,34 +8,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * The LeagueApps Public API does not document a standings endpoint, so
  * standings are computed from completed games in the program schedule.
- * Field names vary between API responses, so every lookup tries several
- * candidate keys; adjust with the `leagueapps_widgets_game_fields` filter.
+ * Games and teams are read with Schedule_Data, which handles the varying
+ * field names in API responses.
  */
 class Standings_Calculator {
-
-	public static function field_map() {
-		return apply_filters(
-			'leagueapps_widgets_game_fields',
-			array(
-				'games'       => array( 'games', 'schedule', 'events' ),
-				'home_id'     => array( 'team1Id', 'homeTeamId', 'team1.teamId', 'homeTeam.teamId', 'homeTeam.id' ),
-				'away_id'     => array( 'team2Id', 'awayTeamId', 'team2.teamId', 'awayTeam.teamId', 'awayTeam.id' ),
-				'home_name'   => array( 'team1', 'homeTeamName', 'team1Name', 'team1.name', 'homeTeam.name' ),
-				'away_name'   => array( 'team2', 'awayTeamName', 'team2Name', 'team2.name', 'awayTeam.name' ),
-				'home_score'  => array( 'team1Score', 'homeScore', 'homeTeamScore', 'team1.score', 'homeTeam.score' ),
-				'away_score'  => array( 'team2Score', 'awayScore', 'awayTeamScore', 'team2.score', 'awayTeam.score' ),
-				'state'       => array( 'state', 'status', 'gameStatus' ),
-				'team_list'   => array( 'teams' ),
-				'team_id'     => array( 'teamId', 'id' ),
-				'team_name'   => array( 'name', 'teamName' ),
-			)
-		);
-	}
-
-	/** Game states that mean "don't count this game". */
-	public static function excluded_states() {
-		return apply_filters( 'leagueapps_widgets_excluded_game_states', array( 'CANCELED', 'CANCELLED', 'POSTPONED', 'SCHEDULED', 'FORFEIT_PENDING' ) );
-	}
 
 	/**
 	 * @param array  $schedule Decoded schedule response.
@@ -45,41 +21,24 @@ class Standings_Calculator {
 	 * @return array[] Rows sorted best-first, each with rank, team, gp, w, l, t, pf, pa, diff, pct, pts.
 	 */
 	public static function calculate( $schedule, $teams, $ranking = 'win_pct', $points = array() ) {
-		$map    = self::field_map();
 		$points = wp_parse_args( $points, array( 'win' => 3, 'tie' => 1, 'loss' => 0 ) );
 		$rows   = array();
 
-		foreach ( self::list_from( $teams, $map['team_list'] ) as $team ) {
-			$id   = self::pick( $team, $map['team_id'] );
-			$name = self::pick( $team, $map['team_name'] );
-			if ( null !== $id || null !== $name ) {
-				self::ensure_row( $rows, $id, $name );
-			}
+		foreach ( Schedule_Data::teams( $teams ) as $team ) {
+			self::ensure_row( $rows, $team['id'], $team['name'] );
 		}
 
-		$excluded = self::excluded_states();
-		foreach ( self::list_from( $schedule, $map['games'] ) as $game ) {
-			if ( ! is_array( $game ) ) {
-				continue;
+		foreach ( Schedule_Data::games( $schedule ) as $game ) {
+			if ( ! $game['counts'] ) {
+				continue; // Not played, no result, or canceled/postponed.
 			}
-			$hs = self::pick( $game, $map['home_score'] );
-			$as = self::pick( $game, $map['away_score'] );
-			if ( ! is_numeric( $hs ) || ! is_numeric( $as ) ) {
-				continue; // Not played / no result.
-			}
-			$state = self::pick( $game, $map['state'] );
-			if ( is_string( $state ) && in_array( strtoupper( $state ), $excluded, true ) ) {
-				continue;
-			}
-
-			$home = self::ensure_row( $rows, self::pick( $game, $map['home_id'] ), self::pick( $game, $map['home_name'] ) );
-			$away = self::ensure_row( $rows, self::pick( $game, $map['away_id'] ), self::pick( $game, $map['away_name'] ) );
+			$home = self::ensure_row( $rows, $game['home_id'], $game['home'] );
+			$away = self::ensure_row( $rows, $game['away_id'], $game['away'] );
 			if ( null === $home || null === $away || $home === $away ) {
 				continue;
 			}
-
-			self::apply_result( $rows[ $home ], (float) $hs, (float) $as );
-			self::apply_result( $rows[ $away ], (float) $as, (float) $hs );
+			self::apply_result( $rows[ $home ], $game['home_score'], $game['away_score'] );
+			self::apply_result( $rows[ $away ], $game['away_score'], $game['home_score'] );
 		}
 
 		foreach ( $rows as &$row ) {
@@ -155,40 +114,5 @@ class Standings_Calculator {
 			$rows[ $key ]['team'] = (string) $name;
 		}
 		return $key;
-	}
-
-	/** A response may be a bare list or wrap the list under a key. */
-	private static function list_from( $data, array $keys ) {
-		if ( ! is_array( $data ) ) {
-			return array();
-		}
-		if ( array_values( $data ) === $data ) {
-			return $data;
-		}
-		foreach ( $keys as $key ) {
-			if ( isset( $data[ $key ] ) && is_array( $data[ $key ] ) ) {
-				return $data[ $key ];
-			}
-		}
-		return array();
-	}
-
-	/** First non-null value among dotted-path candidates. */
-	private static function pick( $item, array $candidates ) {
-		foreach ( $candidates as $path ) {
-			$value = $item;
-			foreach ( explode( '.', $path ) as $part ) {
-				if ( is_array( $value ) && array_key_exists( $part, $value ) ) {
-					$value = $value[ $part ];
-				} else {
-					$value = null;
-					break;
-				}
-			}
-			if ( null !== $value && ! is_array( $value ) ) {
-				return $value;
-			}
-		}
-		return null;
 	}
 }

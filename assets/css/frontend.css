@@ -11,3 +11,45 @@
 .law-standings-table tbody tr:nth-child(even) { background: rgba(0, 0, 0, .03); }
 .law-empty { opacity: .75; font-style: italic; }
 .law-error { padding: .75em 1em; border-left: 4px solid #d63638; background: #fcf0f1; color: #50575e; }
+
+/* Schedule */
+.law-schedule-title { margin: 0 0 .5em; }
+.law-schedule-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.law-schedule-table th,
+.law-schedule-table td { padding: .45em .6em; border-bottom: 1px solid rgba(0, 0, 0, .12); text-align: left; vertical-align: top; }
+.law-schedule-table thead th { font-weight: 600; border-bottom-width: 2px; }
+.law-schedule-table .law-date-row th { padding-top: 1em; font-weight: 600; background: rgba(0, 0, 0, .04); }
+.law-schedule-table .law-col-time,
+.law-schedule-table .law-col-result { white-space: nowrap; }
+.law-schedule-table .law-col-game { width: 45%; }
+.law-schedule-table .law-col-location { width: 35%; }
+.law-schedule-table .law-col-result { text-align: right; font-weight: 600; }
+.law-schedule-table .law-team-selected { font-weight: 700; }
+.law-schedule-table .law-game-canceled .law-col-game { text-decoration: line-through; opacity: .65; }
+.law-schedule-table .law-game-canceled .law-col-result { font-weight: 400; font-style: italic; }
+
+/* Narrow spaces (phones, sidebars): location moves under the matchup. */
+.law-schedule { container-type: inline-size; }
+.law-schedule-table .law-game-location { display: none; font-size: .875em; opacity: .75; }
+@container (max-width: 520px) {
+	.law-schedule-table .law-col-location { display: none; }
+	.law-schedule-table .law-game-location { display: block; }
+	.law-schedule-table .law-col-game { width: 100%; }
+	.law-schedule-table th,
+	.law-schedule-table td { padding-left: .4em; padding-right: .4em; }
+}
+
+/* Very narrow spaces: each game becomes a small card (time · result, then matchup). */
+@container (max-width: 360px) {
+	.law-schedule-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+	.law-schedule-table,
+	.law-schedule-table tbody,
+	.law-schedule-table .law-date-row,
+	.law-schedule-table .law-date-row th { display: block; width: auto; }
+	.law-schedule-table tr.law-game { display: grid; grid-template-columns: 1fr auto; column-gap: .5em; padding: .4em; border-bottom: 1px solid rgba(0, 0, 0, .12); }
+	.law-schedule-table tr.law-game td { display: block; padding: 0; border: 0; }
+	.law-schedule-table tr.law-game td.law-col-location { display: none; }
+	.law-schedule-table .law-col-time { grid-column: 1; grid-row: 1; font-size: .875em; opacity: .8; }
+	.law-schedule-table .law-col-result { grid-column: 2; grid-row: 1; }
+	.law-schedule-table .law-col-game { grid-column: 1 / -1; grid-row: 2; width: auto; }
+}
