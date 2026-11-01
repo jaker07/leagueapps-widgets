@@ -312,7 +312,8 @@ class Schedule_Widget extends Widget {
 			}
 		}
 		if ( 'practice' === $game['category'] ) {
-			$label = __( 'Practice', 'leagueapps-widgets' );
+			// e.g. "Strength and Conditioning Practice", or just "Practice".
+			$label = '' !== $game['title'] ? $game['title'] : __( 'Practice', 'leagueapps-widgets' );
 		} else {
 			$label = '' !== $game['title'] ? $game['title'] : __( 'Event', 'leagueapps-widgets' );
 		}

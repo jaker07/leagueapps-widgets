@@ -6,9 +6,11 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Reads games and teams out of LeagueApps schedule / teams responses.
  *
- * Field names in these responses aren't fully documented and vary, so every
- * lookup tries several candidate keys (dotted paths reach into nested
- * objects). Adjust them with the `leagueapps_widgets_game_fields` filter.
+ * Field names follow the LeagueApps API documentation
+ * (https://leagueapps.notion.site/LeagueApps-API-Documentation-e32aa52e1b0a47bfa20e4c0563fafeca);
+ * the first candidate for each field is the documented one, and the others
+ * are fallbacks (dotted paths reach into nested objects). Adjust them with
+ * the `leagueapps_widgets_game_fields` filter.
  */
 class Schedule_Data {
 
@@ -17,10 +19,13 @@ class Schedule_Data {
 			'leagueapps_widgets_game_fields',
 			array(
 				'games'        => array( 'games', 'schedule', 'events' ),
-				'game_id'      => array( 'gameId', 'id', 'eventId' ),
-				'home_id'      => array( 'team1Id', 'homeTeamId', 'team1.teamId', 'homeTeam.teamId', 'homeTeam.id' ),
+				// Documented: games have gameId; events (practices etc.) have eventId.
+				'game_id'      => array( 'gameId', 'eventId', 'id' ),
+				'item_type'    => array( 'scheduleItemType' ),
+				// Events (practices) have a single teamId / teamName.
+				'home_id'      => array( 'team1Id', 'homeTeamId', 'team1.teamId', 'homeTeam.teamId', 'homeTeam.id', 'teamId' ),
 				'away_id'      => array( 'team2Id', 'awayTeamId', 'team2.teamId', 'awayTeam.teamId', 'awayTeam.id' ),
-				'home_name'    => array( 'team1', 'homeTeamName', 'team1Name', 'team1.name', 'homeTeam.name' ),
+				'home_name'    => array( 'team1', 'homeTeamName', 'team1Name', 'team1.name', 'homeTeam.name', 'teamName' ),
 				'away_name'    => array( 'team2', 'awayTeamName', 'team2Name', 'team2.name', 'awayTeam.name' ),
 				'home_score'   => array( 'team1Score', 'homeScore', 'homeTeamScore', 'team1.score', 'homeTeam.score' ),
 				'away_score'   => array( 'team2Score', 'awayScore', 'awayTeamScore', 'team2.score', 'awayTeam.score' ),
@@ -29,7 +34,10 @@ class Schedule_Data {
 				'start'        => array( 'startTime', 'startDateTime', 'start', 'startDate', 'date' ),
 				'location'     => array( 'locationName', 'location.name', 'location' ),
 				'location_id'  => array( 'locationId', 'location.locationId', 'location.id' ),
-				'sub_location' => array( 'subLocationName', 'subLocation.name', 'subLocation', 'fieldName', 'courtName' ),
+				// Events have locationLabel, e.g. "Enter on Amsterdam Ave".
+				'sub_location' => array( 'subLocationName', 'subLocation.name', 'subLocation', 'fieldName', 'courtName', 'locationLabel' ),
+				'lat'          => array( 'latitude', 'locationLatitude' ),
+				'lng'          => array( 'longitude', 'locationLongitude' ),
 				'title'        => array( 'name', 'title', 'eventName', 'description' ),
 				'team_list'    => array( 'teams' ),
 				'team_id'      => array( 'teamId', 'id' ),
@@ -73,10 +81,12 @@ class Schedule_Data {
 			$start     = self::pick( $raw, $map['start'] );
 			$type      = self::pick( $raw, $map['type'] );
 			$type      = is_string( $type ) ? strtoupper( trim( $type ) ) : '';
+			$item_type = self::pick( $raw, $map['item_type'] );
 			$category  = self::category(
 				$type,
 				null !== self::pick( $raw, $map['home_id'] ) || '' !== (string) self::pick( $raw, $map['home_name'] ),
-				null !== self::pick( $raw, $map['away_id'] ) || '' !== (string) self::pick( $raw, $map['away_name'] )
+				null !== self::pick( $raw, $map['away_id'] ) || '' !== (string) self::pick( $raw, $map['away_name'] ),
+				is_string( $item_type ) ? strtoupper( $item_type ) : ''
 			);
 
 			$games[] = array(
@@ -97,8 +107,7 @@ class Schedule_Data {
 				'title'        => (string) self::pick( $raw, $map['title'] ),
 				'location'     => (string) self::pick( $raw, $map['location'] ),
 				'location_id'  => self::pick( $raw, $map['location_id'] ),
-				// Some responses embed the address in the game's location object.
-				'place'        => isset( $raw['location'] ) && is_array( $raw['location'] ) ? self::location( $raw['location'] ) : null,
+				'place'        => self::embedded_place( $raw, $map ),
 				'sub_location' => (string) self::pick( $raw, $map['sub_location'] ),
 				'raw'          => $raw,
 			);
@@ -109,11 +118,17 @@ class Schedule_Data {
 	/**
 	 * Groups an entry as 'game', 'practice' or 'event' (anything else).
 	 *
-	 * Uses the entry's type when it has one, matched by keyword so variants
-	 * like "SCRIMMAGE" or "TEAM_PRACTICE" are covered. Without a type, an
-	 * entry with two teams is a game and anything else is an event.
+	 * LeagueApps marks each schedule item with scheduleItemType:
+	 * STRUCTURED_GAME items are games (their `type` is the game type, e.g.
+	 * SCHEDULED or a playoff, not game-vs-practice); EVENT items have a type
+	 * such as "Practice". Types are matched by keyword so variants like
+	 * "TEAM_PRACTICE" are covered. Without either, an entry with two teams is
+	 * a game and anything else is an event.
 	 */
-	public static function category( $type, $has_home, $has_away ) {
+	public static function category( $type, $has_home, $has_away, $item_type = '' ) {
+		if ( '' !== $item_type && false !== strpos( $item_type, 'GAME' ) ) {
+			return 'game';
+		}
 		$keywords = apply_filters(
 			'leagueapps_widgets_event_type_keywords',
 			array(
@@ -131,6 +146,9 @@ class Schedule_Data {
 			}
 			return 'event';
 		}
+		if ( '' !== $item_type ) {
+			return 'event'; // An EVENT item with no type.
+		}
 		return $has_home && $has_away ? 'game' : 'event';
 	}
 
@@ -145,6 +163,9 @@ class Schedule_Data {
 		foreach ( self::list_from( $teams, $map['team_list'] ) as $team ) {
 			if ( ! is_array( $team ) ) {
 				continue;
+			}
+			if ( ! empty( $team['deleted'] ) ) {
+				continue; // Deleted teams come back as { teamId, deleted: true }.
 			}
 			$id   = self::pick( $team, $map['team_id'] );
 			$name = self::pick( $team, $map['team_name'] );
@@ -175,8 +196,9 @@ class Schedule_Data {
 	/**
 	 * One location, normalized.
 	 *
-	 * Field names here are best guesses at the LeagueApps response; adjust
-	 * them with the `leagueapps_widgets_location_fields` filter.
+	 * Documented fields: locationId, name, address1, city, state, zipCode,
+	 * country (the locations list has no coordinates). Others are fallbacks;
+	 * adjust them with the `leagueapps_widgets_location_fields` filter.
 	 *
 	 * @return array id, name, address (one line, may be ''), lat, lng (floats or null).
 	 */
@@ -228,20 +250,53 @@ class Schedule_Data {
 	 */
 	public static function find_location( array $game, array $locations ) {
 		$place = $game['place'];
-		if ( $place && ( '' !== $place['address'] || null !== $place['lat'] ) ) {
+		if ( $place && '' !== $place['address'] ) {
 			return $place;
 		}
+		$found = null;
 		if ( null !== $game['location_id'] && isset( $locations[ 'id:' . $game['location_id'] ] ) ) {
-			return $locations[ 'id:' . $game['location_id'] ];
-		}
-		if ( '' !== $game['location'] ) {
+			$found = $locations[ 'id:' . $game['location_id'] ];
+		} elseif ( '' !== $game['location'] ) {
 			foreach ( $locations as $location ) {
 				if ( 0 === strcasecmp( trim( $location['name'] ), trim( $game['location'] ) ) ) {
-					return $location;
+					$found = $location;
+					break;
 				}
 			}
 		}
+		if ( $found ) {
+			// Games can carry coordinates the locations list doesn't have.
+			if ( null === $found['lat'] && $place && null !== $place['lat'] ) {
+				$found['lat'] = $place['lat'];
+				$found['lng'] = $place['lng'];
+			}
+			return $found;
+		}
 		return $place;
+	}
+
+	/**
+	 * Location details carried by the schedule item itself: a nested location
+	 * object, or coordinates on the item (games have latitude/longitude).
+	 *
+	 * @return array|null See location().
+	 */
+	private static function embedded_place( array $raw, array $map ) {
+		if ( isset( $raw['location'] ) && is_array( $raw['location'] ) ) {
+			return self::location( $raw['location'] );
+		}
+		$lat = self::pick( $raw, $map['lat'] );
+		$lng = self::pick( $raw, $map['lng'] );
+		if ( is_numeric( $lat ) && is_numeric( $lng ) && ! ( 0.0 === (float) $lat && 0.0 === (float) $lng ) ) {
+			return array(
+				'id'      => self::pick( $raw, $map['location_id'] ),
+				'name'    => (string) self::pick( $raw, $map['location'] ),
+				'address' => '',
+				'lat'     => (float) $lat,
+				'lng'     => (float) $lng,
+			);
+		}
+		return null;
 	}
 
 	/**
@@ -272,6 +327,15 @@ class Schedule_Data {
 			return array();
 		}
 		if ( array_values( $data ) === $data ) {
+			// The schedule comes back as [ { "games": [...], "notes": [...] } ]:
+			// a list of wrappers rather than the items themselves.
+			if ( isset( $data[0] ) && is_array( $data[0] ) && array_intersect( $keys, array_keys( $data[0] ) ) ) {
+				$items = array();
+				foreach ( $data as $wrapper ) {
+					$items = array_merge( $items, self::list_from( $wrapper, $keys ) );
+				}
+				return $items;
+			}
 			return $data;
 		}
 		foreach ( $keys as $key ) {
