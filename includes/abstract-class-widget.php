@@ -22,6 +22,9 @@ defined( 'ABSPATH' ) || exit;
  *       'label'   => 'Shown in the block sidebar',
  *       'help'    => 'Optional help text',
  *       'options' => array( 'value' => 'Label', ... ), // Optional: renders a select.
+ *       'control' => 'program', // Optional: dropdown of the selected site's current
+ *                               // programs (string attribute holding a program ID).
+ *       'empty_label' => '…',   // With 'control' => 'program': label for "none selected".
  *   )
  */
 abstract class Widget {

@@ -36,8 +36,9 @@ class Schedule_Widget extends Widget {
 			'program_id'    => array(
 				'type'    => 'string',
 				'default' => '',
-				'label'   => __( 'Program ID', 'leagueapps-widgets' ),
-				'help'    => __( 'The program’s ID number in LeagueApps.', 'leagueapps-widgets' ),
+				'label'       => __( 'Program', 'leagueapps-widgets' ),
+				'control'     => 'program',
+				'empty_label' => __( '— Select a program —', 'leagueapps-widgets' ),
 			),
 			'show'          => array(
 				'type'    => 'string',
@@ -154,15 +155,12 @@ class Schedule_Widget extends Widget {
 
 	/** Program name from the site's current programs, if it's listed there. */
 	private function program_name( $api, $program_id ) {
-		$list = $api->get_current_programs();
-		if ( is_wp_error( $list ) ) {
-			return '';
-		}
-		$list = isset( $list['programs'] ) && is_array( $list['programs'] ) ? $list['programs'] : $list;
-		foreach ( $list as $program ) {
-			$id = Schedule_Data::pick( $program, array( 'programId', 'id' ) );
-			if ( null !== $id && (string) $id === (string) $program_id ) {
-				return (string) Schedule_Data::pick( $program, array( 'name' ) );
+		$list = $api->get_programs();
+		if ( ! is_wp_error( $list ) ) {
+			foreach ( $list as $program ) {
+				if ( $program['id'] === (string) $program_id ) {
+					return $program['name'];
+				}
 			}
 		}
 		return '';

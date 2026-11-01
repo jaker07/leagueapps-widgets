@@ -65,7 +65,7 @@ The first site in the list is the default, and widgets without a `site` use it. 
 [leagueapps_standings sport="Hockey" site="hockey"]
 ```
 
-Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same options.
+Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same options, with **Program** as a dropdown (see [Choosing a program in the block editor](#choosing-a-program-in-the-block-editor)).
 
 | Attribute     | Default   | Notes |
 |---------------|-----------|-------|
@@ -88,7 +88,7 @@ Block: **LeagueApps Standings** (Widgets category). Its sidebar has the same opt
 [leagueapps_schedule program_id="123456" site="hockey"]
 ```
 
-Block: **LeagueApps Schedule** (Widgets category). Its sidebar has the same options.
+Block: **LeagueApps Schedule** (Widgets category). Its sidebar has the same options, with **Program** as a dropdown (see [Choosing a program in the block editor](#choosing-a-program-in-the-block-editor)).
 
 | Attribute       | Default      | Notes |
 |-----------------|--------------|-------|
@@ -105,6 +105,18 @@ Games are grouped by day. Dates and times use the time zone, date format and tim
 
 The layout adapts to the space it's in. In narrow spaces like phones and sidebars, the location moves under the matchup. In very narrow spaces, each game is stacked.
 
+### Choosing a program in the block editor
+
+In both blocks, **Program** is a dropdown of the selected site's current programs, labelled with their sport (e.g. "Soccer: U10 Fall Soccer"):
+
+- The list comes from the site chosen in **LeagueApps site** on that block. Each block can use a different site.
+- Changing a block's site reloads the list for the new site and clears the selected program, since program IDs belong to one site.
+- Each site's list is fetched once per editor session and shared between blocks. On the server it's cached like other API responses.
+- For a program that isn't listed, such as a past season, choose **Other program (enter ID)…** and type its ID. A saved block whose program isn't in the current list opens with the ID field showing.
+- If the list can't be loaded (for example, a wrong API key), the sidebar shows the error and an ID field instead.
+
+The list comes from `GET /wp-json/leagueapps-widgets/v1/programs?site={slug}`, which is only available to logged-in users who can edit posts.
+
 ## Adding a widget
 
 1. Extend `LeagueApps_Widgets\Widget`. Implement `get_id()`, `get_title()`, `get_attributes()` (a schema) and `render( $atts )`.
@@ -116,7 +128,7 @@ add_action( 'leagueapps_widgets_register', function ( $registry, $plugin ) {
 }, 10, 2 );
 ```
 
-You get the shortcode `[leagueapps_{id}]` and the block `leagueapps-widgets/{id}` automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Every widget also gets the `site` option automatically, so don't declare it yourself.
+You get the shortcode `[leagueapps_{id}]` and the block `leagueapps-widgets/{id}` automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Every widget also gets the `site` option automatically, so don't declare it yourself. To give a string attribute the program dropdown, add `'control' => 'program'` (and optionally `'empty_label'`) to its schema entry.
 
 Inside `render()`, get the API client for the widget's chosen site and use `site_get( 'path' )` for any `/v1/sites/{siteId}/…` endpoint:
 
@@ -137,6 +149,7 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 
 - `leagueapps_widgets_register` (action): register widgets.
 - `leagueapps_widgets_api_base_url`: override the API host.
+- `leagueapps_widgets_programs`: the normalized program list (`id`, `name`, `sport`) for a site, used by both widgets and the editor dropdown.
 - `leagueapps_widgets_game_fields`: response field names for games and teams (standings and schedule).
 - `leagueapps_widgets_excluded_game_states`: game states that are ignored.
 - `leagueapps_widgets_standings_programs`, `leagueapps_widgets_standings_rows`, `leagueapps_widgets_standings_columns`: change the standings output.

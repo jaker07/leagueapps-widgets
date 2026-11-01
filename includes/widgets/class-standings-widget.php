@@ -42,8 +42,10 @@ class Standings_Widget extends Widget {
 			'program_id'  => array(
 				'type'    => 'string',
 				'default' => '',
-				'label'   => __( 'Program ID (optional)', 'leagueapps-widgets' ),
-				'help'    => __( 'Show a single program instead of every program in the sport.', 'leagueapps-widgets' ),
+				'label'       => __( 'Program (optional)', 'leagueapps-widgets' ),
+				'help'        => __( 'Show a single program instead of every program in the sport.', 'leagueapps-widgets' ),
+				'control'     => 'program',
+				'empty_label' => __( 'All programs in the sport', 'leagueapps-widgets' ),
 			),
 			'ranking'     => array(
 				'type'    => 'string',
@@ -110,40 +112,27 @@ class Standings_Widget extends Widget {
 	 * @return array[]|\WP_Error List of array( 'id' => ..., 'name' => ... ).
 	 */
 	private function find_programs( $api, array $atts ) {
-		$list = $api->get_current_programs();
+		$list = $api->get_programs();
 		if ( is_wp_error( $list ) ) {
 			// A specific program can still be shown without the program list.
 			return '' !== $atts['program_id'] ? array( array( 'id' => $atts['program_id'], 'name' => '' ) ) : $list;
 		}
-		if ( isset( $list['programs'] ) && is_array( $list['programs'] ) ) {
-			$list = $list['programs'];
+
+		if ( '' !== $atts['program_id'] ) {
+			foreach ( $list as $program ) {
+				if ( $program['id'] === $atts['program_id'] ) {
+					return array( $program );
+				}
+			}
+			// Not in the current list (e.g. a finished program): try it directly.
+			return array( array( 'id' => $atts['program_id'], 'name' => '' ) );
 		}
 
 		$found = array();
 		foreach ( $list as $program ) {
-			if ( ! is_array( $program ) ) {
-				continue;
+			if ( 0 === strcasecmp( trim( $program['sport'] ), trim( $atts['sport'] ) ) ) {
+				$found[] = $program;
 			}
-			$id    = isset( $program['programId'] ) ? $program['programId'] : ( isset( $program['id'] ) ? $program['id'] : null );
-			$name  = isset( $program['name'] ) ? $program['name'] : '';
-			$sport = isset( $program['sport'] ) ? $program['sport'] : ( isset( $program['sportName'] ) ? $program['sportName'] : '' );
-			if ( null === $id ) {
-				continue;
-			}
-			if ( '' !== $atts['program_id'] ) {
-				if ( (string) $id === $atts['program_id'] ) {
-					return array( array( 'id' => $id, 'name' => $name ) );
-				}
-				continue;
-			}
-			if ( 0 === strcasecmp( trim( (string) $sport ), trim( $atts['sport'] ) ) ) {
-				$found[] = array( 'id' => $id, 'name' => $name );
-			}
-		}
-
-		if ( '' !== $atts['program_id'] ) {
-			// Not in the current list (e.g. finished program) — try it directly.
-			return array( array( 'id' => $atts['program_id'], 'name' => '' ) );
 		}
 		return apply_filters( 'leagueapps_widgets_standings_programs', $found, $atts );
 	}

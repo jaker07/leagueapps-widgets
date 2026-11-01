@@ -43,7 +43,7 @@ class Widget_Registry {
 		wp_register_script(
 			self::EDITOR_HANDLE,
 			LAW_URL . 'assets/js/blocks.js',
-			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-server-side-render', 'wp-i18n' ),
+			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-server-side-render', 'wp-i18n', 'wp-api-fetch', 'wp-url' ),
 			LAW_VERSION,
 			true
 		);
@@ -105,7 +105,6 @@ class Widget_Registry {
 			}
 			$def['options'] = $options;
 			$def['hidden']  = count( $sites ) < 2;
-			unset( $def['is_site'] );
 			$schema[ $name ] = $def;
 		}
 		return $schema;

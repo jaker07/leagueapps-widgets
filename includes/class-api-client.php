@@ -43,6 +43,32 @@ class Api_Client {
 		return $this->site_get( 'programs/current' );
 	}
 
+	/**
+	 * Current programs, normalized.
+	 *
+	 * @return array[]|\WP_Error Each: id (string), name, sport.
+	 */
+	public function get_programs() {
+		$list = $this->get_current_programs();
+		if ( is_wp_error( $list ) ) {
+			return $list;
+		}
+		$list     = Schedule_Data::list_from( $list, array( 'programs' ) );
+		$programs = array();
+		foreach ( $list as $program ) {
+			$id = Schedule_Data::pick( $program, array( 'programId', 'id' ) );
+			if ( null === $id || ! is_array( $program ) ) {
+				continue;
+			}
+			$programs[] = array(
+				'id'    => (string) $id,
+				'name'  => (string) Schedule_Data::pick( $program, array( 'name', 'programName' ) ),
+				'sport' => (string) Schedule_Data::pick( $program, array( 'sport', 'sportName', 'sport.name' ) ),
+			);
+		}
+		return apply_filters( 'leagueapps_widgets_programs', $programs, $this->get_site_slug() );
+	}
+
 	public function get_program_schedule( $program_id ) {
 		return $this->site_get( 'programs/' . rawurlencode( (string) $program_id ) . '/schedule' );
 	}
@@ -80,7 +106,8 @@ class Api_Client {
 			$url = add_query_arg( $query, $url );
 		}
 
-		$cache_key = self::TRANSIENT_PREFIX . md5( self::cache_version() . '|' . $url );
+		// The key is part of the cache key so a different (or wrong) key never reuses another's responses.
+		$cache_key = self::TRANSIENT_PREFIX . md5( self::cache_version() . '|' . $url . '|' . $this->site['api_key'] );
 		$ttl       = (int) $this->settings->get( 'cache_ttl' ) * MINUTE_IN_SECONDS;
 
 		if ( $ttl > 0 ) {

@@ -33,6 +33,7 @@ final class Plugin {
 
 		$this->settings->hooks();
 		$this->widgets->hooks();
+		( new Rest_Controller( $this ) )->hooks();
 
 		// Settings can change mid-request (saving the settings page).
 		add_action( 'update_option_' . Settings::OPTION, array( $this, 'reset_clients' ) );
