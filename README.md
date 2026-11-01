@@ -221,6 +221,17 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 - `leagueapps_widgets_schedule_games`: change which games the schedule shows, after filtering, sorting and the limit.
 - `leagueapps_widgets_schedule_date_format`: the date format for the schedule's day headings (default `l, ` plus the site's date format).
 
+## Releasing
+
+1. Update the version in both places in `leagueapps-widgets.php`: the `Version:` header and `LAW_VERSION`. Commit and push.
+2. On GitHub, go to **Releases → Draft a new release**. Create a tag such as `v1.1.0` on `main`, write the notes and publish.
+3. The **Release ZIP** workflow (`.github/workflows/release.yml`) then:
+   - checks that the tag matches the plugin version,
+   - checks PHP and JavaScript syntax,
+   - builds `leagueapps-widgets-<version>.zip` and attaches it to the release.
+
+   If the version doesn't match the tag, the workflow fails and no ZIP is attached. To rebuild the ZIP for an existing release, run the workflow from the **Actions** tab and enter the tag.
+
 ## Development
 
 In Claude Code cloud sessions, the `.claude/settings.json` SessionStart hook runs `wp-start`. It starts a local WordPress at http://localhost:8080 with this plugin linked and active. That's a disposable development site inside the session's container; its default login is admin/admin and it isn't reachable from the internet.
