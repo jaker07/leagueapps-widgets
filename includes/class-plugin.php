@@ -42,6 +42,7 @@ final class Plugin {
 		// Built-in widgets.
 		$this->widgets->register( new Widgets\Standings_Widget() );
 		$this->widgets->register( new Widgets\Schedule_Widget() );
+		$this->widgets->register( new Widgets\Announcements_Widget() );
 
 		/**
 		 * Register additional widgets.

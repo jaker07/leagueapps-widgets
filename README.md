@@ -128,11 +128,35 @@ In both blocks, **Program** is a dropdown of the selected site's current program
 
 The list comes from `GET /wp-json/leagueapps-widgets/v1/programs?site={slug}`, which is only available to logged-in users who can edit posts.
 
+### Announcements
+
+```
+[leagueapps_announcements]
+[leagueapps_announcements limit="3" content="titles"]
+[leagueapps_announcements content="full" site="hockey" title="Hockey news"]
+```
+
+Block: **LeagueApps Announcements** (Widgets category). Its sidebar has the same options.
+
+| Attribute      | Default   | Notes |
+|----------------|-----------|-------|
+| `site`         | default site | Slug of a site from Settings → LeagueApps. |
+| `limit`        | `5`       | Maximum number of announcements. `0` shows all of them. |
+| `content`      | `excerpt` | `excerpt` (title and the first 30 words), `full` (title and full text) or `titles` (titles only). |
+| `show_date`    | `true`    | Shows each announcement's date. |
+| `show_images`  | `true`    | Shows an announcement's image, if it has one (not in `titles` mode). |
+| `hide_expired` | `true`    | Hides announcements whose end date has passed. Announcements without an end date always show. |
+| `title`        | —         | A heading above the list. |
+
+Announcements come from `/v1/sites/{siteId}/announcements`, newest first. Titles link to the announcement on LeagueApps when it gives a link, and excerpts end with a "Read more" link. Announcements without a title use the start of their text. In `full` mode, the announcement's HTML is limited to basic formatting (paragraphs, bold/italic, lists, links). Scripts, styles, images, embeds and `javascript:` links are removed.
+
+The API documentation lists this endpoint but gives no sample response. Field names follow the documented blog endpoint (`title`, `summary`, `urlHtml`, `createdOn`, `imageUrl`), with fallbacks such as `message`, `body`, `endDate` and `url`. Adjust them with the `leagueapps_widgets_announcement_fields` filter if needed.
+
 ## Bold Builder
 
 If [Bold Builder](https://wordpress.org/plugins/bold-page-builder/) is active, every LeagueApps widget is also a Bold Builder element. Nothing needs to be set up.
 
-1. In Bold Builder's back-end or front-end editor, add an element to a column and pick **LeagueApps Schedule** or **LeagueApps Standings**. Searching "LeagueApps" in the element list finds both.
+1. In Bold Builder's back-end or front-end editor, add an element to a column and pick **LeagueApps Schedule**, **LeagueApps Standings** or **LeagueApps Announcements**. Searching "LeagueApps" in the element list finds them.
 2. Fill in the settings. The **General** tab has the site, program, sport and other options. The schedule's **Event types** tab chooses which kinds of entries to include. The **Display** tab has the show/hide options.
 
 Differences from the block editor:
@@ -185,6 +209,10 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 - `leagueapps_widgets_game_fields`: response field names for games and teams (standings and schedule).
 - `leagueapps_widgets_excluded_game_states`: game states that are ignored.
 - `leagueapps_widgets_standings_programs`, `leagueapps_widgets_standings_rows`, `leagueapps_widgets_standings_columns`: change the standings output.
+- `leagueapps_widgets_announcement_fields`: response field names for announcements.
+- `leagueapps_widgets_announcements`: the announcements a widget shows, after hiding expired ones and applying the limit.
+- `leagueapps_widgets_announcement_excerpt_words`: excerpt length in words (default 30).
+- `leagueapps_widgets_announcement_allowed_html`: HTML tags allowed in full-text announcements.
 - `leagueapps_widgets_location_fields`: response field names for locations (name, address parts, coordinates).
 - `leagueapps_widgets_link_location`: whether a location is linked to a map (default: when its address or coordinates are known).
 - `leagueapps_widgets_event_type_keywords`: keywords that sort an entry's type into `game` or `practice` (anything else is `event`).

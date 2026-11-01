@@ -80,6 +80,11 @@ class Api_Client {
 		return is_wp_error( $response ) ? array() : Schedule_Data::locations( $response );
 	}
 
+	/** Posted site announcements, newest first. */
+	public function get_announcements() {
+		return $this->site_get( 'announcements' );
+	}
+
 	public function get_program_schedule( $program_id ) {
 		return $this->site_get( 'programs/' . rawurlencode( (string) $program_id ) . '/schedule' );
 	}

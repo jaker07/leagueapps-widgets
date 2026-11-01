@@ -6,3 +6,4 @@
 }
 .bt_bb_icon_leagueapps_standings:before { content: "\f313" !important; } /* awards */
 .bt_bb_icon_leagueapps_schedule:before { content: "\f508" !important; }  /* calendar-alt */
+.bt_bb_icon_leagueapps_announcements:before { content: "\f488" !important; } /* megaphone */
