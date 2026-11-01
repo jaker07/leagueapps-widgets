@@ -1,0 +1,13 @@
+.law-widget { margin: 0 0 1.5em; }
+.law-standings-program + .law-standings-program { margin-top: 1.5em; }
+.law-standings-title { margin: 0 0 .5em; }
+.law-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.law-standings-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.law-standings-table th,
+.law-standings-table td { padding: .45em .6em; border-bottom: 1px solid rgba(0, 0, 0, .12); text-align: right; white-space: nowrap; }
+.law-standings-table thead th { font-weight: 600; border-bottom-width: 2px; }
+.law-standings-table .law-col-team { text-align: left; font-weight: 500; white-space: normal; width: 100%; }
+.law-standings-table .law-col-rank { text-align: center; opacity: .7; }
+.law-standings-table tbody tr:nth-child(even) { background: rgba(0, 0, 0, .03); }
+.law-empty { opacity: .75; font-style: italic; }
+.law-error { padding: .75em 1em; border-left: 4px solid #d63638; background: #fcf0f1; color: #50575e; }
