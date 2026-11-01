@@ -1,0 +1,60 @@
+# Builds the installable plugin ZIP and attaches it to a GitHub release.
+#
+# Runs when a release is published. To rebuild the ZIP for an existing
+# release, run it manually from the Actions tab and enter the tag.
+name: Release ZIP
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build (e.g. v1.0.0)
+        required: true
+
+permissions:
+  contents: write # Upload the ZIP to the release.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Check the plugin version matches the tag
+        run: |
+          version="${TAG#v}"
+          header=$(sed -n 's/^ \* Version: *//p' leagueapps-widgets.php | tr -d '[:space:]')
+          constant=$(sed -n "s/^define( 'LAW_VERSION', '\(.*\)' );/\1/p" leagueapps-widgets.php)
+          echo "Tag: $TAG | Plugin header: $header | LAW_VERSION: $constant"
+          if [ "$header" != "$version" ] || [ "$constant" != "$version" ]; then
+            echo "::error file=leagueapps-widgets.php::The plugin version ($header / $constant) doesn't match the release tag $TAG. Update both version lines in leagueapps-widgets.php, then re-tag."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check PHP and JavaScript syntax
+        run: |
+          status=0
+          for f in $(git ls-files '*.php'); do php -l "$f" > /dev/null || status=1; done
+          for f in $(git ls-files '*.js'); do node --check "$f" || status=1; done
+          exit $status
+
+      - name: Build the ZIP
+        # .gitattributes keeps development files (.github, .claude, ...) out of the archive.
+        run: |
+          zip="leagueapps-widgets-${VERSION}.zip"
+          git archive --format=zip --prefix=leagueapps-widgets/ -o "$zip" HEAD
+          unzip -l "$zip"
+          echo "ZIP=$zip" >> "$GITHUB_ENV"
+
+      - name: Attach the ZIP to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$ZIP" --clobber --repo "$GITHUB_REPOSITORY"
