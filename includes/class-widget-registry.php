@@ -126,7 +126,17 @@ class Widget_Registry {
 		return function ( $atts ) use ( $widget ) {
 			wp_enqueue_style( self::STYLE_HANDLE );
 			// Shortcode attribute names are lowercased by WordPress.
-			return $widget->render( $widget->normalize_attributes( (array) $atts ) );
+			$atts = is_array( $atts ) ? $atts : array();
+			$html = $widget->render( $widget->normalize_attributes( $atts ) );
+
+			/**
+			 * Shortcode output, e.g. for page builders that need extra markup.
+			 *
+			 * @param string $html   Rendered HTML ('' when there is nothing to show).
+			 * @param Widget $widget The widget.
+			 * @param array  $atts   Raw shortcode attributes.
+			 */
+			return apply_filters( 'leagueapps_widgets_shortcode_output', $html, $widget, $atts );
 		};
 	}
 

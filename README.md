@@ -120,6 +120,23 @@ In both blocks, **Program** is a dropdown of the selected site's current program
 
 The list comes from `GET /wp-json/leagueapps-widgets/v1/programs?site={slug}`, which is only available to logged-in users who can edit posts.
 
+## Bold Builder
+
+If [Bold Builder](https://wordpress.org/plugins/bold-page-builder/) is active, every LeagueApps widget is also a Bold Builder element. Nothing needs to be set up.
+
+1. In Bold Builder's back-end or front-end editor, add an element to a column and pick **LeagueApps Schedule** or **LeagueApps Standings**. Searching "LeagueApps" in the element list finds both.
+2. Fill in the settings. The **General** tab has the site, program, sport and other options. The **Display** tab has the show/hide options.
+
+Differences from the block editor:
+
+- **LeagueApps site** is a dropdown of your configured sites. It only appears once you have more than one.
+- **Program ID** and **Sport** are typed, because Bold Builder's dropdowns can't change when another field changes. Use the program's ID number and the sport name as it appears in LeagueApps.
+- Show/hide options are **Yes/No** dropdowns rather than checkboxes. A Bold Builder checkbox saves nothing when unchecked, so it couldn't turn off an option that defaults to on.
+
+Bold Builder saves the same `[leagueapps_*]` shortcodes used everywhere else, so pages keep working if you stop using it. In its front-end editor, our elements can be selected, edited with a live preview, and saved like its own elements.
+
+Developers can adjust the elements with the `leagueapps_widgets_bold_builder_element` and `leagueapps_widgets_bold_builder_params` filters.
+
 ## Adding a widget
 
 1. Extend `LeagueApps_Widgets\Widget`. Implement `get_id()`, `get_title()`, `get_attributes()` (a schema) and `render( $atts )`.
@@ -131,7 +148,7 @@ add_action( 'leagueapps_widgets_register', function ( $registry, $plugin ) {
 }, 10, 2 );
 ```
 
-You get the shortcode `[leagueapps_{id}]` and the block `leagueapps-widgets/{id}` automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Every widget also gets the `site` option automatically, so don't declare it yourself. To give a string attribute one of these dropdowns, add `'control' => 'program'` or `'control' => 'sport'` (and optionally `'empty_label'`) to its schema entry. Add `'filter_by' => 'sport'` to a program control to narrow it by a sport attribute.
+You get the shortcode `[leagueapps_{id}]`, the block `leagueapps-widgets/{id}` and, when Bold Builder is active, a Bold Builder element automatically. The block's sidebar controls are generated from the attribute schema, so no JavaScript is needed. Every widget also gets the `site` option automatically, so don't declare it yourself. To give a string attribute one of these dropdowns, add `'control' => 'program'` or `'control' => 'sport'` (and optionally `'empty_label'`) to its schema entry. Add `'filter_by' => 'sport'` to a program control to narrow it by a sport attribute.
 
 Inside `render()`, get the API client for the widget's chosen site and use `site_get( 'path' )` for any `/v1/sites/{siteId}/…` endpoint:
 
@@ -152,6 +169,8 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 
 - `leagueapps_widgets_register` (action): register widgets.
 - `leagueapps_widgets_api_base_url`: override the API host.
+- `leagueapps_widgets_shortcode_output`: a widget's shortcode HTML, after rendering (used to add Bold Builder's front-end editor markup).
+- `leagueapps_widgets_bold_builder_element`, `leagueapps_widgets_bold_builder_params`: the Bold Builder element definition and its settings fields.
 - `leagueapps_widgets_programs`: the normalized program list (`id`, `name`, `sport`) for a site, used by both widgets and the editor dropdown.
 - `leagueapps_widgets_game_fields`: response field names for games and teams (standings and schedule).
 - `leagueapps_widgets_excluded_game_states`: game states that are ignored.

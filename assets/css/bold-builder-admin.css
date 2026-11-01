@@ -1,0 +1,8 @@
+/* Bold Builder element icons for LeagueApps widgets (Dashicons glyphs). */
+[class*="bt_bb_icon_leagueapps_"]:before {
+	font-family: dashicons !important;
+	font-weight: normal !important;
+	content: "\f185" !important; /* chart-bar: any other LeagueApps widget */
+}
+.bt_bb_icon_leagueapps_standings:before { content: "\f313" !important; } /* awards */
+.bt_bb_icon_leagueapps_schedule:before { content: "\f508" !important; }  /* calendar-alt */
