@@ -36,8 +36,10 @@ class Standings_Widget extends Widget {
 			'sport'       => array(
 				'type'    => 'string',
 				'default' => '',
-				'label'   => __( 'Sport', 'leagueapps-widgets' ),
-				'help'    => __( 'As named in LeagueApps, e.g. Soccer. Shows every current program in that sport.', 'leagueapps-widgets' ),
+				'label'       => __( 'Sport', 'leagueapps-widgets' ),
+				'help'        => __( 'Shows every current program in this sport.', 'leagueapps-widgets' ),
+				'control'     => 'sport',
+				'empty_label' => __( '— Select a sport —', 'leagueapps-widgets' ),
 			),
 			'program_id'  => array(
 				'type'    => 'string',
@@ -45,6 +47,7 @@ class Standings_Widget extends Widget {
 				'label'       => __( 'Program (optional)', 'leagueapps-widgets' ),
 				'help'        => __( 'Show a single program instead of every program in the sport.', 'leagueapps-widgets' ),
 				'control'     => 'program',
+				'filter_by'   => 'sport',
 				'empty_label' => __( 'All programs in the sport', 'leagueapps-widgets' ),
 			),
 			'ranking'     => array(

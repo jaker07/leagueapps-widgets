@@ -22,10 +22,16 @@ defined( 'ABSPATH' ) || exit;
  *       'label'   => 'Shown in the block sidebar',
  *       'help'    => 'Optional help text',
  *       'options' => array( 'value' => 'Label', ... ), // Optional: renders a select.
- *       'control' => 'program', // Optional: dropdown of the selected site's current
- *                               // programs (string attribute holding a program ID).
- *       'empty_label' => '…',   // With 'control' => 'program': label for "none selected".
+ *       'control' => 'program' | 'sport', // Optional: dropdown of the selected site's
+ *                               // current programs (value: program ID) or of the
+ *                               // sports those programs are in (value: sport name).
+ *       'empty_label' => '…',   // With 'control': label for "nothing selected".
+ *       'filter_by' => 'sport', // With 'control' => 'program': only list programs in
+ *                               // the sport chosen in this other attribute.
  *   )
+ *
+ * Changing the site clears 'program' and 'sport' controls, since their values
+ * belong to one site.
  */
 abstract class Widget {
 
