@@ -172,7 +172,15 @@ class Bold_Builder {
 			esc_attr( wp_json_encode( (object) $atts ) ),
 			\BT_BB_FE::$fe_id
 		);
-		return preg_replace( '/^(\s*<\w+)/', '$1' . str_replace( '$', '\\$', $attrs ), $html, 1 );
+		// A callback, so nothing in $attrs is read as a regex back-reference.
+		return preg_replace_callback(
+			'/^(\s*<\w+)/',
+			function ( $m ) use ( $attrs ) {
+				return $m[1] . $attrs;
+			},
+			$html,
+			1
+		);
 	}
 
 	/** Elements added in the front-end editor arrive without a page reload. */

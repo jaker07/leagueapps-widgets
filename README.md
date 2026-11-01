@@ -202,7 +202,9 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 ## Hooks
 
 - `leagueapps_widgets_register` (action): register widgets.
-- `leagueapps_widgets_api_base_url`: override the API host.
+- `leagueapps_widgets_api_base_url`: override the API host (e.g. for a LeagueApps test server).
+- `leagueapps_widgets_request_timeout`: API request timeout in seconds (default 10).
+- `leagueapps_widgets_error_cache_seconds`: how long a failed API request is remembered before retrying (default 60), so an outage doesn't slow every page view. Saving settings or clearing the cache retries right away.
 - `leagueapps_widgets_shortcode_output`: a widget's shortcode HTML, after rendering (used to add Bold Builder's front-end editor markup).
 - `leagueapps_widgets_bold_builder_element`, `leagueapps_widgets_bold_builder_params`: the Bold Builder element definition and its settings fields.
 - `leagueapps_widgets_programs`: the normalized program list (`id`, `name`, `sport`) for a site, used by both widgets and the editor dropdown.
@@ -221,4 +223,4 @@ Outside a widget, `LeagueApps_Widgets\Plugin::instance()->api( 'hockey' )` retur
 
 ## Development
 
-In Claude Code cloud sessions, the `.claude/settings.json` SessionStart hook runs `wp-start`. It starts a local WordPress at http://localhost:8080 (admin/admin) with this plugin linked and active.
+In Claude Code cloud sessions, the `.claude/settings.json` SessionStart hook runs `wp-start`. It starts a local WordPress at http://localhost:8080 with this plugin linked and active. That's a disposable development site inside the session's container; its default login is admin/admin and it isn't reachable from the internet.

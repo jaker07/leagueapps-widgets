@@ -14,6 +14,7 @@ class Api_Client {
 	const BASE_URL         = 'https://public.leagueapps.io';
 	const CACHE_VERSION    = 'leagueapps_widgets_cache_version';
 	const TRANSIENT_PREFIX = 'law_';
+	const ERROR_MARKER     = '__law_error';
 
 	/** @var Settings */
 	private $settings;
@@ -129,14 +130,50 @@ class Api_Client {
 		if ( $ttl > 0 ) {
 			$cached = get_transient( $cache_key );
 			if ( false !== $cached ) {
+				if ( is_array( $cached ) && isset( $cached[ self::ERROR_MARKER ] ) ) {
+					$error = $cached[ self::ERROR_MARKER ];
+					return new \WP_Error( $error['code'], $error['message'], $error['data'] );
+				}
 				return $cached;
 			}
 		}
 
+		$result = $this->request( $url, $path );
+
+		if ( $ttl > 0 ) {
+			if ( is_wp_error( $result ) ) {
+				// Remember failures briefly so an outage doesn't slow every page view.
+				$error_ttl = (int) apply_filters( 'leagueapps_widgets_error_cache_seconds', MINUTE_IN_SECONDS );
+				if ( $error_ttl > 0 ) {
+					set_transient(
+						$cache_key,
+						array(
+							self::ERROR_MARKER => array(
+								'code'    => $result->get_error_code(),
+								'message' => $result->get_error_message(),
+								'data'    => $result->get_error_data(),
+							),
+						),
+						min( $error_ttl, $ttl )
+					);
+				}
+			} else {
+				set_transient( $cache_key, $result, $ttl );
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Uncached GET.
+	 *
+	 * @return array|\WP_Error
+	 */
+	private function request( $url, $path ) {
 		$response = wp_remote_get(
 			$url,
 			array(
-				'timeout' => 15,
+				'timeout' => (int) apply_filters( 'leagueapps_widgets_request_timeout', 10 ),
 				'headers' => array(
 					'la-api-key' => $this->site['api_key'],
 					'Accept'     => 'application/json',
@@ -163,9 +200,6 @@ class Api_Client {
 			return new \WP_Error( 'law_bad_json', __( 'LeagueApps API returned an unreadable response.', 'leagueapps-widgets' ) );
 		}
 
-		if ( $ttl > 0 ) {
-			set_transient( $cache_key, $data, $ttl );
-		}
 		return $data;
 	}
 
@@ -175,6 +209,6 @@ class Api_Client {
 
 	/** Invalidate every cached response by bumping the version baked into cache keys. */
 	public static function flush_cache() {
-		update_option( self::CACHE_VERSION, (string) time(), false );
+		update_option( self::CACHE_VERSION, uniqid( '', true ), false );
 	}
 }
